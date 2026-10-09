@@ -19,5 +19,5 @@ and English.
 
 | Term | Length | Milestone |
 |------|--------|-----------|
-| Term 1 | 10 weeks | First presentation around November 27, 2026 |
+| Term 1 | Weeks 4 to 14 | Practice presentation in week 10, first presentation after week 14 |
 | Term 2 | 12 to 13 weeks | The full product |

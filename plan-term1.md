@@ -1,7 +1,10 @@
 # Term 1 Plan
 
-> **Goal:** by the first presentation (week 7, around **November 27, 2026**) we show
-> the idea, a first working version online, and proof that real shops want it.
+> **Goal:** at the first presentation, right after week 14 (end of December 2026), we
+> show the idea, a first working version online, and proof that real shops want it.
+>
+> Week numbers are the term's weeks. The plan runs from **week 4** (starting
+> October 10) to **week 14**. **Week 10** is a practice presentation to get feedback.
 >
 > This plan says **what** each subteam delivers, not **how**. Each subteam picks its
 > own tools and can change them, as long as the agreements in this plan still hold.
@@ -12,8 +15,9 @@
 2. [Subteams](#2-subteams)
 3. [How the subteams connect](#3-how-the-subteams-connect)
 4. [Timeline at a glance](#4-timeline-at-a-glance)
-5. [Week by week](#5-week-by-week)
-6. [After the presentation](#6-after-the-presentation-weeks-8-to-10)
+5. [Build: weeks 4 to 9](#5-build-weeks-4-to-9)
+6. [Practice presentation: week 10](#6-practice-presentation-week-10)
+7. [From practice to the real presentation: weeks 11 to 14](#7-from-practice-to-the-real-presentation-weeks-11-to-14)
 
 ---
 
@@ -42,18 +46,20 @@ What we bring to the first presentation. A first version, not the full product.
 
 ### 1.3 Proof from the real market
 
-| Target | Number |
-|--------|--------|
-| Interviews with shop owners (physical and online) | 30 |
-| Sign-ups on the waiting list | 50 |
-| Shops that agree in writing to try the system | 5 (2 to 3 already set up) |
-| Real quotes about their problems | For the slides |
+| Target | By practice (week 10) | By the real presentation |
+|--------|:---------------------:|:------------------------:|
+| Interviews with shop owners (physical and online) | 30 | 30+ |
+| Sign-ups on the waiting list | 30 | 50 |
+| Shops that agree in writing to try the system | 2 | 5 |
+| Pilot shops using the system for real | - | 2 to 3, with their feedback |
+| Real quotes about their problems | Yes | Yes, plus pilot quotes |
 
 ### 1.4 AI results
 
 - A test set of 100+ real requests in Arabic and English
 - How often the AI picks the right action, compared across 3 models
 - Which model we chose, and why
+- How it did with the pilot shops' real requests
 
 ### 1.5 Security
 
@@ -82,7 +88,7 @@ shows what comes in term 2.
 | Security | 1 | Login safety, roles, walls between businesses, AI safety |
 
 - Each subteam has **one lead**
-- Everyone visits **at least 3 shops** during weeks 2 to 5
+- Everyone visits **at least 3 shops** during weeks 5 to 8
 
 ---
 
@@ -118,14 +124,14 @@ flowchart LR
 
 | From | To | What | When |
 |------|----|------|------|
-| AI agent | Backend | AI tool list: what each tool does, needs and returns | Week 1 |
-| Security | Everyone | Roles and what each may do | Week 1 |
-| Frontend | Everyone | Wireframes of every term 1 screen | Week 1 |
+| AI agent | Backend | AI tool list: what each tool does, needs and returns | Week 4 |
+| Security | Everyone | Roles and what each may do | Week 4 |
+| Frontend | Everyone | Wireframes of every term 1 screen | Week 4 |
 | Backend | Frontend, AI agent | Each feature's data and actions, ready to connect | Every week, by integration day |
-| Frontend | AI agent | Order, customer and product cards for AI answers | Week 4 |
-| AI data | AI agent | Test results and weak spots | Every week from week 3 |
-| Market | AI data | Real owner requests from interviews | Every week from week 2 |
-| Market | Frontend | What owners liked and found hard | Weeks 3 to 6 |
+| Frontend | AI agent | Order, customer and product cards for AI answers | Week 7 |
+| AI data | AI agent | Test results and weak spots | Every week from week 6 |
+| Market | AI data | Real owner requests from interviews and pilots | Every week from week 5 |
+| Market | Frontend | What owners liked and found hard | Weeks 6 to 13 |
 
 ---
 
@@ -133,20 +139,24 @@ flowchart LR
 
 | Week | Dates | Focus | End-of-week demo |
 |:----:|-------|-------|------------------|
-| 1 | Oct 10 to 16 | Agreements and foundations | All leads sign off the first `contracts.md` |
-| 2 | Oct 17 to 23 | Accounts and businesses | Owner signs up, creates a business, invites a member who sees only what the role allows |
-| 3 | Oct 24 to 30 | Products and stock | A product added on screen and one through the AI; stock shows in both |
-| 4 | Oct 31 to Nov 6 | Orders and customers | In-store sale lowers stock; the AI creates Mariam's order |
-| 5 | Nov 7 to 13 | Store website and customer history | Buyer orders on the website; it shows in the dashboard and the AI answers about it |
-| 6 | Nov 14 to 20 | Dashboard, polish, online | Full presentation demo on the online system, twice |
-| 7 | Nov 21 to 27 | **First presentation** | Rehearsals and presentation |
-| 8 to 10 | Nov 28 to Dec 18 | Pilot and term 2 planning | Pilot shops using it for real |
+| 4 | Oct 10 to 16 | Agreements and foundations | All leads sign off the first `contracts.md` |
+| 5 | Oct 17 to 23 | Accounts and businesses | Owner signs up, creates a business, invites a member who sees only what the role allows |
+| 6 | Oct 24 to 30 | Products and stock | A product added on screen and one through the AI; stock shows in both |
+| 7 | Oct 31 to Nov 6 | Orders and customers | In-store sale lowers stock; the AI creates Mariam's order |
+| 8 | Nov 7 to 13 | Store website and customer history | Buyer orders on the website; it shows in the dashboard and the AI answers about it |
+| 9 | Nov 14 to 20 | Dashboard, polish, online | Full demo on the online system, twice |
+| 10 | Nov 21 to 27 | **Practice presentation** | Feedback collected |
+| 11 | Nov 28 to Dec 4 | Fix feedback, pilots start | Pilot shops using the system |
+| 12 | Dec 5 to 11 | Pilot use and improvements | Fixes from pilot feedback live |
+| 13 | Dec 12 to 18 | Final results, freeze | Final numbers ready, no new features |
+| 14 | Dec 19 to 25 | Rehearsals | Two full rehearsals |
+| - | After week 14 | **First presentation** | |
 
 ---
 
-## 5. Week by week
+## 5. Build: weeks 4 to 9
 
-### Week 1 (Oct 10 to 16): Agreements and foundations
+### Week 4 (Oct 10 to 16): Agreements and foundations
 
 | Subteam | Delivers |
 |---------|----------|
@@ -159,7 +169,7 @@ flowchart LR
 
 **Integration:** all leads sign off the first `contracts.md` (screens, data, tools and roles match).
 
-### Week 2 (Oct 17 to 23): Accounts and businesses
+### Week 5 (Oct 17 to 23): Accounts and businesses
 
 | Subteam | Delivers |
 |---------|----------|
@@ -172,7 +182,7 @@ flowchart LR
 
 **Integration demo:** an owner signs up, creates a business and invites a member who only sees what the role allows.
 
-### Week 3 (Oct 24 to 30): Products and stock
+### Week 6 (Oct 24 to 30): Products and stock
 
 | Subteam | Delivers |
 |---------|----------|
@@ -185,7 +195,7 @@ flowchart LR
 
 **Integration demo:** a product added on screen and one added through the AI; stock changes show in both.
 
-### Week 4 (Oct 31 to Nov 6): Orders and customers
+### Week 7 (Oct 31 to Nov 6): Orders and customers
 
 | Subteam | Delivers |
 |---------|----------|
@@ -194,11 +204,11 @@ flowchart LR
 | AI agent | Create an order with a confirm card, find a customer, full order details. Answers shown as the app's cards |
 | AI data | Test set v1 (100+ requests, including real ones) |
 | Security | Who can see profit and give discounts. Review |
-| Market | 10 interviews (30 total). Aim for 30 sign-ups |
+| Market | 10 interviews (30 total). Aim for 20 sign-ups |
 
 **Integration demo:** an in-store sale lowers stock; the AI creates Mariam's order and it shows in the order list.
 
-### Week 5 (Nov 7 to 13): Store website and customer history
+### Week 8 (Nov 7 to 13): Store website and customer history
 
 | Subteam | Delivers |
 |---------|----------|
@@ -211,36 +221,75 @@ flowchart LR
 
 **Integration demo:** a buyer orders on the website; the order appears in the dashboard and in the customer's history; the AI answers about it.
 
-### Week 6 (Nov 14 to 20): Dashboard, polish, online
+### Week 9 (Nov 14 to 20): Dashboard, polish, online
 
 | Subteam | Delivers |
 |---------|----------|
 | Backend | Dashboard numbers, demo data, system online |
 | Frontend | Dashboard, mobile pass, consistent look |
 | AI agent | Fix the failures found by the tests |
-| AI data | Final model choice by results. Numbers recorded |
+| AI data | First model choice by results. Numbers recorded |
 | Security | Full run of all security tests. Fixes |
-| Market | Results collected. 2 to 3 pilot shops set up |
+| Market | Practice results collected (30 interviews, 30 sign-ups, 2 pilot commitments) |
 
-**Integration demo:** the full presentation demo on the online system, twice, with a bug list sorted by priority.
+**Integration demo:** the full demo on the online system, twice, with a bug list sorted by priority.
 
-### Week 7 (Nov 21 to 27): First presentation
+---
+
+## 6. Practice presentation: week 10
+
+### Week 10 (Nov 21 to 27)
 
 | Subteam | Delivers |
 |---------|----------|
-| Everyone | No new features, only fixes. Demo script. 2 full rehearsals |
+| Everyone | No new features, only fixes. Demo script. 1 rehearsal before the practice |
 | Market | Market proof slide |
 | AI agent and AI data | AI results slide |
 | Security | Security slide |
 | Backend | Architecture slide |
 | Frontend | Live demo |
+| Leads | Write down every piece of feedback, sorted into "fix before the real presentation" and "term 2" |
 
 ---
 
-## 6. After the presentation (weeks 8 to 10)
+## 7. From practice to the real presentation: weeks 11 to 14
 
-| Week | Dates | What |
-|:----:|-------|------|
-| 8 | Nov 28 to Dec 4 | Fix what the committee pointed out. Pilot shops start real use |
-| 9 | Dec 5 to 11 | Collect pilot feedback. Start the API for existing websites if time allows |
-| 10 | Dec 12 to 18 | Rank the term 2 list. Update `technical-structure.md`. Plan term 2 |
+### Week 11 (Nov 28 to Dec 4): Fix feedback, pilots start
+
+| Subteam | Delivers |
+|---------|----------|
+| Backend | Fixes from the practice feedback. Pilot shops' accounts ready |
+| Frontend | Fixes from the practice feedback |
+| AI agent | Fixes from the practice feedback |
+| AI data | Start collecting the pilot shops' real requests |
+| Security | Check the online system is safe for real shops' data |
+| Market | 2 to 3 pilot shops set up and trained |
+
+### Week 12 (Dec 5 to 11): Pilot use and improvements
+
+| Subteam | Delivers |
+|---------|----------|
+| Backend and Frontend | Fix what pilot shops find hard or broken |
+| AI agent | Improve the helper on the pilot shops' real requests |
+| AI data | Add pilot requests to the test set, rerun the tests |
+| Security | Watch the pilot for problems, fix what is found |
+| Market | Pilot feedback and quotes. Push toward 50 sign-ups and 5 commitments |
+
+### Week 13 (Dec 12 to 18): Final results, freeze
+
+| Subteam | Delivers |
+|---------|----------|
+| Everyone | Feature freeze at the end of the week |
+| AI data | Final AI numbers, including pilot requests |
+| Market | Final market numbers and pilot results |
+| Security | Final security test run |
+| All subteams | Final version of their slide |
+
+### Week 14 (Dec 19 to 25): Rehearsals
+
+| Subteam | Delivers |
+|---------|----------|
+| Everyone | Two full rehearsals of slides and live demo. Backup demo video in case the live demo fails |
+| Leads | Term 2 roadmap slide: the ranked list of what comes next |
+
+**After week 14: the first presentation.**
