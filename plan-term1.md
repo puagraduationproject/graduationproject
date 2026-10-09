@@ -56,9 +56,11 @@ What we bring to the first presentation. A first version, not the full product.
 
 ### 1.4 AI results
 
+- **Our own fine-tuned model**, trained on Egyptian Arabic and English shop
+  requests and our tools, powering the AI helper in the demo
 - A test set of 100+ real requests in Arabic and English
-- How often the AI picks the right action, compared across 3 models
-- Which model we chose, and why
+- How often the AI picks the right action: our tuned model compared with 3
+  ready-made models (the ready model stays as fallback)
 - How it did with the pilot shops' real requests
 
 ### 1.5 Security
@@ -83,7 +85,7 @@ shows what comes in term 2.
 | Backend | 2 CS | The data and rules of the system, the online version |
 | Frontend | 2 CS | Dashboard screens, store website, landing page |
 | AI agent | 2 AI | The AI helper, its tools, its answers as cards |
-| AI data | 2 AI | Arabic and English quality, test set, model choice |
+| AI data | 2 AI | Training data, fine-tuning our own model, test set, Arabic and English quality |
 | Market | 1 AI (lead) + everyone | Interviews, sign-ups, pilot shops |
 | Security | 1 | Login safety, roles, walls between businesses, AI safety |
 
@@ -130,6 +132,7 @@ flowchart LR
 | Backend | Frontend, AI agent | Each feature's data and actions, ready to connect | Every week, by integration day |
 | Frontend | AI agent | Order, customer and product cards for AI answers | Week 7 |
 | AI data | AI agent | Test results and weak spots | Every week from week 6 |
+| AI data | AI agent | Tuned model ready to plug into the helper | Week 9, updated week 12 |
 | Market | AI data | Real owner requests from interviews and pilots | Every week from week 5 |
 | Market | Frontend | What owners liked and found hard | Weeks 6 to 13 |
 
@@ -163,7 +166,7 @@ flowchart LR
 | Backend | A shared place where everyone's work runs together. The list of things the system stores (businesses, members, products, stock, orders, customers) |
 | Frontend | Wireframes of all term 1 screens, the AI panel and the store website. Landing page design |
 | AI agent | The AI tool list |
-| AI data | Shortlist of models. 30 example requests in Arabic and English |
+| AI data | Shortlist of 3 ready models and 2 to 3 open base models to fine-tune. 30 example requests in Arabic and English. Format of the training data |
 | Security | Roles and permissions. List of main risks |
 | Market | Interview script, list of 50 target shops, sign-up form |
 
@@ -176,7 +179,7 @@ flowchart LR
 | Backend | Sign up, log in, create a business, invite members with a role. Every change recorded |
 | Frontend | Sign up and login screens. App frame with menu, language switch and AI panel. Landing page live |
 | AI agent | The helper answers in the panel using fake data |
-| AI data | Test set v0 (50 requests) |
+| AI data | Test set v0 (50 requests). Training data v0 (200 examples). GPU rental plan and budget |
 | Security | Login protection, roles enforced, one business cannot see another's data |
 | Market | 10 interviews. Share the landing page |
 
@@ -189,7 +192,7 @@ flowchart LR
 | Backend | Products, sizes and colors, categories. Stock in, out and adjust, with history |
 | Frontend | Product screens and stock screen |
 | AI agent | Search products, check stock, get price, add a product with a confirm card |
-| AI data | Compare the models on the test set |
+| AI data | Compare the ready models on the test set. First small fine-tuning run to prove it works |
 | Security | Review products and stock. Limits against abuse |
 | Market | 10 interviews. Pass real phrases to AI data |
 
@@ -202,7 +205,7 @@ flowchart LR
 | Backend | Customers. Orders with statuses. Quick in-store sale. Cash on delivery. Order numbers per business |
 | Frontend | Order list and order page with status bar. Quick-sale screen. Customer list and page. Cards ready for the AI |
 | AI agent | Create an order with a confirm card, find a customer, full order details. Answers shown as the app's cards |
-| AI data | Test set v1 (100+ requests, including real ones) |
+| AI data | Test set v1 (100+ requests, including real ones). Training data v1 (1,000 examples). Second tuning run |
 | Security | Who can see profit and give discounts. Review |
 | Market | 10 interviews (30 total). Aim for 20 sign-ups |
 
@@ -215,7 +218,7 @@ flowchart LR
 | Backend | Public store (products, place an order). Expenses, profit. Customer timeline and total spend |
 | Frontend | Store website (home, product, cart, cash on delivery checkout). Store settings for the owner |
 | AI agent | Sales numbers by period, customer history, notes and tasks |
-| AI data | Arabic quality pass |
+| AI data | Arabic quality pass. Tuned model tested against the ready models |
 | Security | Protect the public store from spam and abuse. Test the AI against tricks (prompt injection) |
 | Market | Show the working system to interviewed shops. Ask for pilot commitments |
 
@@ -227,8 +230,8 @@ flowchart LR
 |---------|----------|
 | Backend | Dashboard numbers, demo data, system online |
 | Frontend | Dashboard, mobile pass, consistent look |
-| AI agent | Fix the failures found by the tests |
-| AI data | First model choice by results. Numbers recorded |
+| AI agent | Fix the failures found by the tests. The helper can switch between our tuned model and a ready model |
+| AI data | First results: tuned model versus ready models. Numbers recorded |
 | Security | Full run of all security tests. Fixes |
 | Market | Practice results collected (30 interviews, 30 sign-ups, 2 pilot commitments) |
 
@@ -261,7 +264,7 @@ flowchart LR
 | Backend | Fixes from the practice feedback. Pilot shops' accounts ready |
 | Frontend | Fixes from the practice feedback |
 | AI agent | Fixes from the practice feedback |
-| AI data | Start collecting the pilot shops' real requests |
+| AI data | Start collecting the pilot shops' real requests. Third tuning run with the practice feedback |
 | Security | Check the online system is safe for real shops' data |
 | Market | 2 to 3 pilot shops set up and trained |
 
@@ -271,7 +274,7 @@ flowchart LR
 |---------|----------|
 | Backend and Frontend | Fix what pilot shops find hard or broken |
 | AI agent | Improve the helper on the pilot shops' real requests |
-| AI data | Add pilot requests to the test set, rerun the tests |
+| AI data | Add pilot requests to the test set and the training data (2,000+ examples). Final tuning run, rerun the tests |
 | Security | Watch the pilot for problems, fix what is found |
 | Market | Pilot feedback and quotes. Push toward 50 sign-ups and 5 commitments |
 
@@ -280,7 +283,7 @@ flowchart LR
 | Subteam | Delivers |
 |---------|----------|
 | Everyone | Feature freeze at the end of the week |
-| AI data | Final AI numbers, including pilot requests |
+| AI data | Final numbers: tuned model versus ready models, including pilot requests. Confirm the tuned model for the demo (ready model as fallback) |
 | Market | Final market numbers and pilot results |
 | Security | Final security test run |
 | All subteams | Final version of their slide |
