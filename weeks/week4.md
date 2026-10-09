@@ -11,7 +11,7 @@
 
 ## Everyone
 
-- [ ] Join the GitHub organization and accept your team invite
+- [D] Join the GitHub organization and accept your team invite
 - [ ] Read the [README](../README.md) and the [term 1 plan](../plan-term1.md)
 - [ ] Each subteam picks its **lead** and tells the group
 - [ ] Agree on the weekly **leads meeting** time (30 minutes)
