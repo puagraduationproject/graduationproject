@@ -12,7 +12,7 @@
 ## Everyone
 
 - [x] Join the GitHub organization and accept your team invite
-- [ ] Read the [technical structure](../technical-structure.md) sections 0 and 1,
+- [x] Read the [technical structure](../technical-structure.md) sections 0 and 1,
       and the [term 1 plan](../plan-term1.md)
 - [ ] Each subteam picks its **lead**; the group picks **one person with the
       final say on scope**
