@@ -1,15 +1,17 @@
 # Graduation Project
 
-A simple CRM and ERP for shops that sell products (physical, online, or both),
-with a store website and an AI helper that works inside the system, in Arabic
-and English.
+**One AI for every small business.** An AI manager, running on our own
+fine-tuned model, that manages a small business's customer chats, orders,
+stock and cash, on top of a full ERP and CRM, with a store website and more
+tools. Showcase: coffee shops and small markets. Egyptian Arabic and English.
 
 ## Documents
 
 | Document | What it is |
 |----------|-----------|
-| [Term 1 plan](plan-term1.md) | What each subteam delivers each week, how the parts connect, and the final output for the first presentation |
-| [Technical structure](technical-structure.md) | The original full design. Being updated to the new idea |
+| [Technical structure](technical-structure.md) | The full design: the idea, the parts, the data, the AI and the model |
+| [Term 1 plan](plan-term1.md) | What each subteam delivers each week, how the parts connect, and the final output of term 1 |
+| [Weeks](weeks/) | Detailed tasks for each week |
 
 ## Team
 
@@ -17,7 +19,7 @@ and English.
 
 ## Timeline
 
-| Term | Length | Milestone |
-|------|--------|-----------|
+| Term | Weeks | Milestone |
+|------|-------|-----------|
 | Term 1 | Weeks 4 to 14 | Practice presentation in week 10, first presentation after week 14 |
 | Term 2 | 12 to 13 weeks | The full product |
