@@ -26,6 +26,7 @@
 
 ## Backend (2 CS)
 
+- [X] **Account** sing-up & login flow - DB 
 - [ ] **What the system stores:** every kind of record with its main fields, in
       `contracts.md`. At least: business, member, role, template, item, variant,
       modifier (milk type, extra shot), ingredient, recipe line, stock movement,
