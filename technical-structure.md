@@ -31,7 +31,7 @@ hardly process and take time for a simple Q/A. Instead each model will be sepera
 **Micro Model:** The model that is responsible for Customer Q/A **(Customer Agent)** a 4B model that is efficent for simple tasks like answering whatsapp / telegram , helping customer through. + A RISK POLICY GATE (HUGE MODEL HELPS JUST IN CASE) + Business Brain
 
 
-##**Huge Model:** The model that is responsible for Business Partners + Proactive Jobs **(50B MODEL)**
+**Huge Model:** The model that is responsible for Business Partners + Proactive Jobs **(50B MODEL)**
 
 
 **These models gonna be:** our own models, an open base models that we fine-tune to manage a
