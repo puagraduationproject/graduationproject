@@ -22,14 +22,23 @@ runs the daily work with them.
 and **small markets** (groceries, mini-markets). The engine is built for any
 category; these two prove it.
 
-**The model:** our own model, an open base model that we fine-tune to manage a
+## *UPDATE* - AI ARCHITECTURE
+## **(TIERED ARCHITECTURE)**
+Why i used this architecture to make each model enrolled in his own place efficently.
+for an example in a coffee shop POS and a customer asks for a latte the customer wont wait until the 70B model 
+hardly process and take time for a simple Q/A. Instead each model will be seperated for each role. Under One Workflow Umbrella.
+
+**Micro Model:** The model that is responsible for Customer Q/A **(Customer Agent)** a 4B model that is efficent for simple tasks like answering whatsapp / telegram , helping customer through. + A RISK POLICY GATE (HUGE MODEL HELPS JUST IN CASE) + Business Brain
+**Huge Model:** The model that is responsible for Business Partners + Proactive Jobs (50B MODEL)
+**These models gonna be:** our own models, an open base models that we fine-tune to manage a
 small business in Egyptian Arabic and English through tools. It adapts to any
 category. No ready-made commercial model (GPT, Claude, Gemini) is used anywhere.
 
 ```
 +--------------------------------------------------------------------+
-|  AI layer: AI manager (one engine, our tuned model)                |
+|  AI layer: Temporal Workflow (our tuned models)                    |
 |  customer agent | owner partner | proactive jobs | business brain  |
+|    Micro Model   ------------- Huge Model ----------------------
 +---------------------------+----------------------------------------+
                             | tools only, never direct data access
 +---------+---------+------------+----------+----------+------------+
@@ -412,7 +421,7 @@ Orders from the website go into the same order flow as every other channel.
 
 ## 8. AI layer
 
-The main part of the product. One engine, our tuned model, two faces.
+The main part of the product. our tuned models, two faces.
 
 ### 8.1 Customer agent
 
