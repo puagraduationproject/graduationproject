@@ -29,7 +29,11 @@ for an example in a coffee shop POS and a customer asks for a latte the customer
 hardly process and take time for a simple Q/A. Instead each model will be seperated for each role. Under One Workflow Umbrella.
 
 **Micro Model:** The model that is responsible for Customer Q/A **(Customer Agent)** a 4B model that is efficent for simple tasks like answering whatsapp / telegram , helping customer through. + A RISK POLICY GATE (HUGE MODEL HELPS JUST IN CASE) + Business Brain
-**Huge Model:** The model that is responsible for Business Partners + Proactive Jobs (50B MODEL)
+
+
+##**Huge Model:** The model that is responsible for Business Partners + Proactive Jobs **(50B MODEL)**
+
+
 **These models gonna be:** our own models, an open base models that we fine-tune to manage a
 small business in Egyptian Arabic and English through tools. It adapts to any
 category. No ready-made commercial model (GPT, Claude, Gemini) is used anywhere.
