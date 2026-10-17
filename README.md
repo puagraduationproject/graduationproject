@@ -10,7 +10,7 @@ tools. Showcase: coffee shops and small markets. Egyptian Arabic and English.
 | Document | What it is |
 |----------|-----------|
 | [Technical structure](technical-structure.md) | The full design: the idea, the parts, the data, the AI and the model |
-| [Term 1 plan](plan-term1.md) | What each subteam delivers each week, how the parts connect, and the final output of term 1 |
+| [Term 1 plan](plan-first-semester.md) | What each subteam delivers each week, how the parts connect, and the final output of term 1 |
 | [Weeks](weeks/) | Detailed tasks for each week |
 
 ## Team

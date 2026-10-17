@@ -5,7 +5,7 @@
 >
 > **End of the week:** all leads sign off the first `contracts.md`.
 >
-> Full plan: [plan-term1.md](../plan-term1.md) · Design: [technical-structure.md](../technical-structure.md)
+> Full plan: [plan-first-semester.md](../plan-first-semester.md) · Design: [technical-structure.md](../technical-structure.md)
 
 ---
 
@@ -13,7 +13,7 @@
 
 - [x] Join the GitHub organization and accept your team invite
 - [x] Read the [technical structure](../technical-structure.md) sections 0 and 1,
-      and the [term 1 plan](../plan-term1.md)
+      and the [term 1 plan](../plan-first-semester.md)
 - [ ] Each subteam picks its **lead**; the group picks **one person with the
       final say on scope**
 - [ ] Agree on the weekly **leads meeting** time (30 minutes) and the weekly
