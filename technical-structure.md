@@ -1,64 +1,97 @@
 # Technical Structure
 
-> The design of the whole product: what it is, how it is built, what each part
-> owns, and how the AI manages it. A living document and the single source of
-> truth. When the team changes something, this file changes first.
+> The design of the whole product, both terms: what it is, who it is for, how
+> it is built, what each part owns, and how the AI runs the business. A living
+> document and the single source of truth. When the team changes something,
+> this file changes first.
 >
 > It says **what** the system is, not which tools build it. The stack is still
-> open (see section 13).
+> open (see section 22).
+>
+> Rewritten 2026-10-19 around four ideas: the product is a chat-first AI tool
+> for the business; the backend is an open ERP and CRM whose only door is its
+> tools; what the AI knows how to do is written as skills; and every business
+> uses only the parts it needs, from a library of packs.
+
+---
+
+## Contents
+
+0. [The idea in one page](#0-the-idea-in-one-page)
+1. [The problem and the people](#1-the-problem-and-the-people)
+2. [Architecture rules](#2-architecture-rules)
+3. [The four layers: functions, tools, skills, model](#3-the-four-layers-functions-tools-skills-model)
+4. [Tools](#4-tools)
+5. [Skills](#5-skills)
+6. [AI layer](#6-ai-layer)
+7. [Core](#7-core)
+8. [ERP](#8-erp)
+9. [CRM and support](#9-crm-and-support)
+10. [Channels](#10-channels)
+11. [Store website and search presence](#11-store-website-and-search-presence)
+12. [Studio](#12-studio)
+13. [Marketing](#13-marketing)
+14. [Team](#14-team)
+15. [Reports](#15-reports)
+16. [Skills catalog](#16-skills-catalog)
+17. [The app: chat-first](#17-the-app-chat-first)
+18. [How customers and staff use it](#18-how-customers-and-staff-use-it)
+19. [Security](#19-security)
+20. [Where it runs](#20-where-it-runs)
+21. [Code structure: repos and folders](#21-code-structure-repos-and-folders)
+22. [Stack](#22-stack)
+23. [What comes in which term](#23-what-comes-in-which-term)
+24. [Research questions](#24-research-questions)
+25. [Risks](#25-risks)
+26. [Open questions](#26-open-questions)
 
 ---
 
 ## 0. The idea in one page
 
-**One AI for every small business.** Each business gets its own AI manager that
-knows only that business. The AI is the main part of the product: it talks to
-customers, takes orders, watches stock and money, and tells the owner what needs
-attention. Behind it sit a full ERP, a CRM, message channels, a store website and
-the other tools. The owner never sees those words; they see an AI partner that
-runs the daily work with them.
+**One AI for every small business.** An AI tool, like the AI assistants people
+already use, but made for running a business. Each business gets its own AI
+manager that knows only that business. It talks to customers, takes orders,
+handles complaints, watches stock and money, helps manage the staff, runs the
+marketing and the website, and tells the owner what needs attention.
+
+The owner opens the app and sees a chat, not a dashboard. The sidebar lists the
+parts of the business (orders, stock, customers, inbox) instead of chat history.
+Every answer comes as text, cards and buttons. The owner never sees "ERP" or
+"CRM".
 
 **Showcase category:** small local businesses, starting with **coffee shops**
 and **small markets** (groceries, mini-markets). The engine is built for any
 category; these two prove it.
 
-## *UPDATE* - AI ARCHITECTURE
-## **(TIERED ARCHITECTURE)**
-Why i used this architecture to make each model enrolled in his own place efficently.
-for an example in a coffee shop POS and a customer asks for a latte the customer wont wait until the 70B model 
-hardly process and take time for a simple Q/A. Instead each model will be seperated for each role. Under One Workflow Umbrella.
+**Four ideas hold the design together:**
 
-**Micro Model:** The model that is responsible for Customer Q/A **(Customer Agent)** a 4B model that is efficent for simple tasks like answering whatsapp / telegram , helping customer through. + A RISK POLICY GATE (HUGE MODEL HELPS JUST IN CASE) + Business Brain
+1. **The backend is an open ERP and CRM whose only door is its tools.** Every
+   module publishes everything it can do as tools, each documented in full. The
+   staff app's buttons, the AI, and later outside websites all use the same
+   tools, with the same permissions and the same audit.
+2. **Tools say what is possible. Skills say how to do it well.** Tools work like
+   the functions of a library: as many as the system needs, few loaded per
+   task, stable and safe. Skills are written know-how (steps, which tools, what
+   to check), as many as needed, and the owner can change them.
+3. **Use only what you need.** Every business gets the essentials; everything
+   else is a pack in a library that the owner turns on or off. A template is a
+   recommended set of packs.
+4. **Our own tuned models.** The AI team's open models, fine-tuned to run a small
+   business through tools. No ready-made commercial model (GPT, Claude, Gemini)
+   is used anywhere. The owner decides what the AI may do alone.
 
-
-**Huge Model:** The model that is responsible for Business Partners + Proactive Jobs **(50B MODEL)**
-
-
-**These models gonna be:** our own models, an open base models that we fine-tune to manage a
-small business in Egyptian Arabic and English through tools. It adapts to any
-category. No ready-made commercial model (GPT, Claude, Gemini) is used anywhere.
-
-```
-+--------------------------------------------------------------------+
-|  AI layer: Temporal Workflow (our tuned models)                    |
-|  customer agent | owner partner | proactive jobs | business brain  |
-|    Micro Model   ------------- Huge Model ----------------------
-+---------------------------+----------------------------------------+
-                            | tools only, never direct data access
-+---------+---------+------------+----------+----------+------------+
-|  ERP    |  CRM    |  Channels  |  Store   |  Studio  | Marketing  |
-| menu    | customers| website   | website  | brand    | offers     |
-| recipes | loyalty | chat       | menu,    | menu     | campaigns  |
-| stock   | timeline| Telegram   | ordering | design   | follow-ups |
-| sales   | segments| WhatsApp   |          | posts    |            |
-| shifts  |         | Instagram  |          |          |            |
-| supplier|         |            |          |          |            |
-+---------+---------+------------+----------+----------+------------+
-+--------------------------------------------------------------------+
-|  Reports: numbers built from events                                |
-+--------------------------------------------------------------------+
-|  Core: businesses, members, roles, templates, audit, events, one DB |
-+--------------------------------------------------------------------+
+```mermaid
+flowchart TD
+  P["Customers, owner, staff"] --> UI["Chat-first app, shop website, Telegram, WhatsApp"]
+  UI --> AI["AI layer: customer face, owner face, jobs, planner"]
+  UI -->|"buttons"| TL
+  AI --> SK["Skills: written know-how, unlimited, owner can edit"]
+  SK --> TL["Tools: published by each module"]
+  AI -->|"no skill fits"| TL
+  TL --> MOD["Modules: Core, ERP, CRM, Channels, Store, Studio, Marketing, Team, Reports"]
+  TL --> OUT["Outside tools through adapters: channels, payments, couriers, image model"]
+  MOD --> DB[("One database, one schema per module")]
 ```
 
 ---
@@ -78,6 +111,8 @@ category. No ready-made commercial model (GPT, Claude, Gemini) is used anywhere.
 8. Strong competition; offers are guesses with no measurement
 9. The owner is not always there and cannot see what happens
 10. Group bookings (match nights, events) live in chats and paper
+11. Staff schedules, swaps and absences are handled by phone calls
+12. Social media posts are rare, late, or made by a relative
 
 ### 1.2 Small markets
 
@@ -87,36 +122,40 @@ category. No ready-made commercial model (GPT, Claude, Gemini) is used anywhere.
 4. Neighbourhood delivery orders by phone and WhatsApp, written on paper
 5. Cash does not match sales; shortages and theft go unnoticed
 6. Reordering from many suppliers by memory
+7. Nobody finds the shop online; no listing, no reviews answered
 
 ### 1.3 Who uses the product
 
 | Who | Uses | Through |
 |-----|------|---------|
-| Owner | Everything their role allows; talks to the AI partner | Dashboard, phone, chat with the AI |
-| Staff (barista, cashier, manager) | Sales screen, orders, shift close, waste, what their role allows | Sales screen, dashboard |
-| Customers (buyers) | Ask questions, order, book, collect loyalty | The business's chat channels and store website |
+| Owner | Everything; works with the AI as a partner | The app (phone, tablet, laptop) |
+| Manager | What the owner allows: stock, staff, approvals below a limit | The app |
+| Staff (barista, cashier) | Sales screen, orders, waste, their shifts and tasks, asking the AI how to do things | The app, mostly the sales screen |
+| Customers | Ask, order, book, complain, collect loyalty | The shop's website chat, Telegram, WhatsApp later |
 | Suppliers | Receive purchase orders (term 2: confirm them) | Messages from the system |
 
 ### 1.4 One journey, one product
 
 Idea, validate, build, launch, run, grow. A coffee shop that already exists
 starts at **run**. A new one starts earlier (brand, menu, store page from the
-studio). The deepest part of the project is **run and grow**: the daily work the
-AI takes over.
+studio, founder tools in term 2). The deepest part of the project is **run and
+grow**: the daily work the AI takes over.
 
 ### 1.5 Simple outside
 
-The owner never sees "ERP" or "CRM". Six principles:
-
-1. **Talk, not forms.** "Add iced latte, 75 pounds" or a voice note does it
+1. **Talk first.** The home screen is a chat. "Add iced latte, 75 pounds" or a
+   voice note does it
 2. **Nothing typed twice.** Customers and orders come straight from chats
 3. **Templates by business type.** Pick "coffee shop" and it is ready
-4. **Features appear when needed.** Branches only show when there is a second one
+4. **Use only what you need.** Every business gets the essentials; the rest is a
+   library of packs it turns on when it wants them (section 7.3)
 5. **Home is a to-do list.** "Milk runs out tomorrow, 2 chats need you, cash was
    50 pounds short yesterday", not charts
 6. **Setup in minutes.** A photo of the menu becomes products and prices
+7. **Screens where talking is slower.** The sales screen, counting cash and
+   taking over a chat stay normal screens with big buttons
 
-Test for every screen: could a café owner use it without help?
+Test for every screen and every answer: could a café owner use it without help?
 
 ### 1.6 Why owners keep using it
 
@@ -125,7 +164,8 @@ Test for every screen: could a café owner use it without help?
 2. **Used every hour.** The sales screen is the café's register, not an extra tool
 3. **Their customers depend on it.** Orders, chats and loyalty points live here
 4. **Their history lives here.** Recipes, costs, suppliers, customers, sales
-5. **The AI learns them.** Memory of decisions makes it better every month
+5. **The AI learns them.** Memory of decisions and their own skills make it
+   better every month
 6. **Hard to break.** Fast at rush hour, keeps selling when the internet drops
 
 ---
@@ -137,8 +177,11 @@ One backend made of strict modules and one database. Not microservices.
 1. **One owner per piece of data.** Others reference it by ID, never copy it
 2. **Modules talk through events.** No module touches another module's tables
 3. **Reading across modules is a service call**
-4. **The AI acts only through tools.** It owns no data and never reads the database
-5. **Every write is audited, every state change emits an event**
+4. **Tools are the only door.** The app, the AI and outside callers use the
+   same tools. There is no second, hidden way in
+5. **The AI acts only through tools.** It owns no business data and never reads
+   the business tables
+6. **Every write is audited, every state change emits an event**
 
 ### 2.1 Data rules
 
@@ -149,84 +192,740 @@ One backend made of strict modules and one database. Not microservices.
 - Order lines snapshot name, price and cost at the time of sale
 - Every business-scoped table has `business_id`, locked by row-level security
 - Events go through an outbox, written in the same transaction as the change
-- Outside services (channels, payments, couriers) sit behind adapters
+- Outside services (channels, payments, couriers, image model) sit behind adapters
 - A test that tries to read another business's data, and must fail
 
 ### 2.2 Who owns what
 
 | Data | Owner |
 |------|-------|
-| Businesses, members, roles, templates, audit | Core |
-| Items, recipes, stock, sales, orders, shifts, suppliers, money | ERP |
-| Customers, identities, timeline, loyalty, segments | CRM |
-| Channel accounts, conversations, messages | Channels |
-| Store website settings and pages | Store website |
-| Brand kit, designs, posts | Studio |
+| Businesses, members, roles, locations, templates, packs on per business, audit, notifications | Core |
+| Items, recipes, stock, sales, orders, payments, shifts, suppliers, purchases, credit, expenses | ERP |
+| Customers, identities, timeline, loyalty, support cases, bookings, segments, consent | CRM |
+| Channel accounts, conversations, messages, auto-replies | Channels |
+| Website settings and pages, search presence, reviews | Store website |
+| Brand kit, design templates, designs, posts | Studio |
 | Offers, campaigns | Marketing |
+| Staff profiles, rota, attendance, tasks | Team |
 | Summary numbers | Reports |
-| Business brain, AI memory, approvals, AI action log | AI layer (its own data only; business data only through tools) |
+| Skills, plans, approvals, AI permission settings, memory, threads, knowledge, AI action log | AI layer (its own data only; business data only through tools) |
+
+### 2.3 One database, one schema per module
+
+| Schema | Module |
+|--------|--------|
+| `core` | Core |
+| `erp` | ERP |
+| `crm` | CRM |
+| `channels` | Channels |
+| `store` | Store website |
+| `studio` | Studio |
+| `marketing` | Marketing |
+| `team` | Team |
+| `reports` | Reports |
+| `ai` | AI layer |
+
+Each module connects with its own database user, which has rights only on its
+own schema. The AI layer's user cannot see any business schema.
+
+### 2.4 Working together: one thing, one ID, everywhere
+
+Each module builds its own part with its own tools. What holds them together is
+that every shared thing has **one owner and one ID**, and every other module
+stores only that ID.
+
+| Thing | Owner | ID | Used by |
+|-------|-------|----|---------|
+| Business | Core | `business_id` | Every module, every table |
+| Member (a person in the business) | Core | `membership_id` | ERP (shifts, sales), Team, Channels (assigned to), audit |
+| Location (branch) | Core | `location_id` | ERP, Team, Store |
+| **Customer** | CRM | `customer_id` | ERP (orders, credit), Channels (conversations), Marketing (sends), Store (orders), AI (memory notes) |
+| Item and variant | ERP | `item_id`, `variant_id` | Store (menu), Studio (designs), Marketing (offers), CRM (usual order) |
+| Order | ERP | `order_id`, shown as `#1042` | CRM (cases, timeline), Channels (notifications), Marketing (results) |
+| Conversation | Channels | `conversation_id` | CRM (cases), AI (who it is talking to) |
+| Design, post | Studio | `design_id`, `post_id` | Channels (publishing), Store (site images), Marketing (campaigns) |
+
+The ID types, money, times, statuses and the event envelope are defined once in
+the contracts, so every module, the app and the AI use exactly the same shapes.
+
+### 2.5 One customer, on every channel and in every module
+
+A customer can arrive by Telegram, by the website chat, at the counter with a
+phone number, or later by WhatsApp or Instagram. They are always **one**
+`customer_id`, owned by CRM.
+
+```mermaid
+flowchart LR
+  TG["Telegram user 5512..."] --> R
+  WC["Website chat, phone 010..."] --> R
+  POS["Counter sale, phone 010..."] --> R
+  WA["WhatsApp +20 10... (term 2)"] --> R
+  R["CRM: resolve identity, normalize phone to +20"] --> C(("customer_id"))
+  C --> E["ERP: orders, credit"]
+  C --> CH["Channels: conversations"]
+  C --> MK["Marketing: sends"]
+  C --> CR["CRM: timeline, loyalty, cases"]
+```
+
+1. Whoever meets a customer first (Channels, Store, the sales screen) asks CRM
+   to **resolve** the identity it has: a phone, a Telegram ID, an Instagram
+   handle. This is a service call, not a database read
+2. CRM normalizes it, finds the customer or creates one, and returns
+   `customer_id`. The caller stores only that ID
+3. A second identity for the same person (their Telegram and their phone) is
+   linked to the same customer when it is proven (the customer gives the phone
+   in the chat), or becomes a merge **suggestion** for the owner
+4. **Merging** never breaks references: the old record is marked
+   `merged_into`, CRM emits `CustomerMerged`, and old IDs keep resolving to the
+   new one
+5. **Forgetting a customer** (on request): CRM removes the personal data and
+   emits `CustomerForgotten`; every module that holds a copy (order snapshots,
+   message bodies, AI notes) removes or masks its own
+
+### 2.6 The glue every call and event carries
+
+Every tool call, service call and event carries the same context:
+
+| Field | Why |
+|-------|-----|
+| `business_id` | Row-level security and the business wall |
+| `actor` | Who did it: a member, the AI (and who it acts for), or the system |
+| `correlation_id` | One ID for everything caused by one request, so one customer message can be followed through every module |
+| `idempotency_key` | A retried call writes once |
+| `face` | Customer or owner, for the AI's calls |
+
+Every event uses one envelope: `event_id`, `type`, `version`, `business_id`,
+`occurred_at`, `actor`, `correlation_id`, `causation_id` (the event that caused
+it), the IDs it is about (`customer_id`, `order_id`, ...), and its data.
+
+### 2.7 How a process crosses modules
+
+No module reaches into another. A process that crosses modules is a chain of
+tool calls and events, each step done by the module that owns it:
+
+| Process | The chain |
+|---------|-----------|
+| Chat order | Channels gets the message and resolves the customer with CRM; the AI calls `erp.create_order`; ERP emits `OrderCreated`; CRM adds activity and points; Channels sends the confirmation; Reports counts it |
+| Order ready | ERP emits `OrderReady`; Channels tells the customer on the conversation they ordered from |
+| Complaint with refund | CRM opens the case; ERP refunds (`RefundIssued`); CRM records it on the case and the timeline; Channels sends the message |
+| Post with an offer | Marketing creates the offer; Studio makes the design and the post; Channels publishes it; ERP orders that use the offer feed Marketing's results |
+
+Rules:
+
+- Each step is idempotent, so a retry never doubles anything
+- If a later step fails, the earlier ones are undone with their undo actions, or
+  the process waits and retries; it never leaves half a process silently
+- Long processes that wait (an approval, a scheduled post) are run by the
+  planner or the scheduler, which survive restarts
+
+### 2.8 References across modules
+
+- Inside a module's schema, references are real database links
+- Across schemas there are no database links: only IDs, checked by a service
+  call when written ("does this customer exist in this business?")
+- Shared things are **archived, never deleted**, so an ID stored elsewhere
+  never points at nothing
+- Each module that shows another module's data (a customer's orders on the
+  customer page) asks the owner through its service, or keeps a small cache
+  updated by events, like `customer_stats`
+- An end-to-end test runs each process in 2.7 through every module, and a
+  contract test checks that each module accepts and returns the shared shapes
 
 ---
 
-## 3. Core
+## 3. The four layers: functions, tools, skills, model
+
+```mermaid
+flowchart TD
+  M["Model: reads the request, picks a skill or composes tools"]
+  S["Skills: written know-how. Steps, tools, checks, approval points"]
+  T["Tools: what is possible. Published by each module, with their rules"]
+  F["System functions: the modules' own code. Nobody outside sees them"]
+  M --> S
+  S --> T
+  M -->|"no skill fits"| T
+  T --> F
+```
+
+| Layer | What it is | How many | Who writes it | Changing it |
+|-------|------------|----------|---------------|-------------|
+| System functions | Each module's services and data | Hundreds | Backend | Free, as long as the tools stay the same |
+| **Tools** | The business's API, in business words | About 150 in total; 5 to 15 loaded for one task | Each module's team, agreed in the contracts | **Rare and careful.** The model is trained on them |
+| **Skills** | Written playbooks | As many as needed | The team, the templates, the owner, and the AI (with approval) | **Free.** They are text, so no retraining |
+| Model | Our tuned models | The AI team decides (two tiers proposed) | AI team | Retrain and re-test |
+
+**Tools decide what the AI can do. Skills decide what it knows how to do well.**
+A skill can never do more than its tools allow, and a tool can never do more
+than the person the AI serves is allowed to do.
+
+The same tools serve three callers:
+
+| Caller | How it calls | Sees |
+|--------|--------------|------|
+| The app (buttons, screens) | Logged-in member's session | What the member's role allows |
+| The AI | Service token, plus who it acts for (a member, or a customer in a conversation) | What that person may see and do, narrowed by face |
+| Outside websites (term 2) | API key per business | What the owner allows for that key |
+
+---
+
+## 4. Tools
+
+### 4.1 What a tool is
+
+A tool is one action a module offers, in business words, with its rules
+attached. Every tool is one entry in the contracts:
+
+| Field | Example (`erp.change_price`) |
+|-------|-------------------------------|
+| Name | `erp.change_price`, always `module.verb_noun` |
+| Description | What the model reads to decide when to use it |
+| Inputs and outputs | Shapes, with the IDs the next step needs |
+| Reads or writes | Writes |
+| Retry key | Required |
+| Undo | `erp.change_price` back to the old price |
+| Permission | `change_price` |
+| Capability (its pack, 7.3) | `catalog` (essentials) |
+| Approval | Always |
+| Faces | Owner only |
+| Examples | Become test cases and training data |
+
+### 4.2 How the AI finds and loads tools
+
+- The full list is long (about 150) and can keep growing. The number is not a
+  limit, the same way the number of functions in a library is not: each module
+  and each pack adds its own, and the model never loads all of them
+- A skill names the tools it needs, so one task loads 5 to 15
+- When no skill fits, the AI calls `ai.find_tools` with what it wants to do and
+  gets the few that match, already filtered for this person
+- Each loaded tool is filtered three times: the business's packs (section 7.3),
+  the person's role, and the face (customer or owner)
+
+### 4.3 Rules for building tools
+
+1. One tool does one thing, and its output feeds the next tool (IDs, numbers)
+2. The same names everywhere: a `customer_id` from CRM is what Marketing takes
+3. Reads are free and can run in parallel; writes go into a plan (section 6.5)
+4. Every write has a retry key and an undo, or a matching action that reverses it
+5. Exact data (prices, stock, totals) only ever comes from a tool result
+6. A new ability is usually a new skill; then a new action on an existing area;
+   a new tool only when neither works
+
+### 4.4 Every tool is documented in full, and the backend keeps its word
+
+The tool reference is what everyone builds on: the frontend, the AI team, the
+training data, and in term 2 developers outside the team. Anyone must be able to
+use a tool from its page alone, without reading the backend's code or asking.
+
+**Each tool's page has:**
+
+| Part | What it says |
+|------|--------------|
+| Purpose | What it does, in one sentence; when to use it and when not to |
+| Inputs | Every parameter: name, type, required or optional, allowed values, default, an example |
+| Output | Every field returned, with its type and meaning |
+| Errors | Every error code, what it means, and what the caller should do |
+| Effects | What it changes, which events it emits, what it never touches |
+| Rules | Permission, pack, face, approval default (6.6), retry key, undo, limits |
+| Examples | Full calls with their results, including a refused one and an error |
+| Version and changes | The current version and every change, with its date |
+
+**The backend's promise:**
+
+1. The page and the code never differ. The page is written first, the backend
+   builds to it, and an automatic test checks every tool against its page
+2. A published tool never changes in a way that breaks a caller. Adding is
+   allowed: a new optional input, a new output field, a new tool
+3. A breaking change (renaming an input, removing a field, changing what a call
+   does) is a **new version**. The old version keeps working for at least one
+   term and is marked as old on its page
+4. Every change is announced to all subteams **before** it is merged, with what
+   changed and why, and written in the changes list of the reference
+5. The backend is responsible for this. A change that breaks a caller without a
+   new version is a bug, and it is fixed by restoring the old behaviour
+
+### 4.5 Outside tools
+
+Outside services are tools too, published by an adapter in the module that owns
+them:
+
+| Outside service | Adapter lives in | Term |
+|-----------------|------------------|:----:|
+| Telegram, website chat | Channels | 1 |
+| WhatsApp, Instagram, Facebook (messages and posts) | Channels | 2 (WhatsApp in term 1 if Meta approves) |
+| Google business profile and reviews | Store website | 2 |
+| Payments, couriers | ERP | 2 |
+| Speech to text (voice notes) | AI layer | 2 |
+| Reading images (menu photos, invoices) | AI layer | 2 |
+| Image model (post backgrounds, product shots) | Studio | 2 |
+
+Every model in this list is an open model the team runs, the same rule as the
+main models. Using a commercial model for any of them needs the team to change
+that rule first.
+
+---
+
+## 5. Skills
+
+### 5.1 What a skill is
+
+A short written playbook: when to use it, what to read, what to decide, what to
+write, what to show, where approval is needed, and what to check.
+
+```yaml
+skill: create_post_image
+when: a post needs an image, or the owner asks for one
+needs: [studio]
+tools: erp.get_item, studio.get_brand_kit, studio.list_templates,
+       studio.render_design, studio.save_design, ai.ask_approval
+steps:
+  1 read:   erp.get_item(iced spanish latte) -> name, price, photo
+  2 read:   studio.get_brand_kit -> colours, logo, fonts
+  3 read:   studio.list_templates(kind post, season summer)
+  4 write:  studio.render_design(template, photo, name, price, caption) -> preview
+  5 show:   ai.ask_approval with the preview
+  6 on yes: studio.save_design
+checks: the price comes only from step 1; Arabic text is placed by the template,
+        never drawn by an image model
+```
+
+Skills can use other skills, the way functions call functions. "Weekly post
+suggestions" calls "create post image" three times.
+
+### 5.2 Three levels
+
+1. **Core:** written by the team, for every business
+2. **Template:** what a business type adds (a coffee shop's milk check before
+   the morning rush; a small market's debt reminders and expiry discounts)
+3. **The business's own:** the owner's changes and additions
+
+Each level can change the one above it, only for that business. "Reset to
+default" brings back the level above.
+
+### 5.3 The owner changes skills by talking
+
+The owner says: *"Post images always in our green, price big, Arabic only, and
+never post on Friday before prayer."* The AI shows the change, does a test run
+(a preview image, a dry run of the steps), and saves it only when the owner
+confirms. Every version is kept, so "go back to how it was" works.
+
+The owner can also add one: *"Every Thursday, remind Ahmed to order beans."*
+The AI writes it as a skill and asks the owner to confirm.
+
+### 5.4 What a skill can never change
+
+These live in the tools and the policy, not in skills:
+
+- Prices and numbers always come from tools
+- Permissions and roles
+- Approval rules (only the owner's limits in Settings change them)
+- Consent before any marketing message
+- Hand-off on complaints the AI cannot solve within its rules
+
+So an edited skill changes **how** the AI works, never **what it is allowed** to do.
+
+### 5.5 Where skills come from
+
+1. The team writes the core skills (section 16)
+2. Templates bring their own
+3. The owner adds and edits
+4. **The AI suggests new ones:** when the owner asks for the same chain of
+   steps three times, the AI offers to save it as a skill
+
+Every core and template skill has test cases in the test set.
+
+---
+
+## 6. AI layer
+
+The main part of the product. Our tuned models, two faces, background jobs, and
+a planner.
+
+### 6.1 Two faces and the jobs
+
+| Face | Serves | Model | Does |
+|------|--------|-------|------|
+| **Customer agent** | Customers on every channel | Small | Answers menu, price, hours, location; takes orders and bookings; tells them when the order is ready; recognizes regulars; opens a support case; hands off |
+| **Owner partner** | Owner, manager, staff | Big | Answers about sales, costs, cash, stock, staff; acts by talking; plans multi-step work; asks approval for risky actions; helps staff ("how do I make a Spanish latte?") |
+| **Jobs** | Nobody directly; they start on a schedule or an event | Big | Morning briefing, alerts, follow-ups, post suggestions, monthly value report |
+
+### 6.2 Two model tiers
+
+A customer asking for a latte should not wait for a big model to think. So each
+model has its own place, under one workflow:
+
+The tiers below are the AI team's proposal; the AI team decides the models,
+their sizes and how many tiers.
+
+| Tier | Size (the AI team decides) | Used for | Why |
+|------|-------------------------|----------|-----|
+| **Small** | About 4B | Customer agent | Fast replies on chat; few tools (the customer face loads at most 10) |
+| **Big** | About 50B | Owner partner, jobs, planning, hard customer cases passed up by the policy gate | Better reasoning and multi-step plans |
+
+Routing between the tiers is automatic; nobody picks a model. Both are open base
+models the team fine-tunes to manage a small business in Egyptian Arabic, Franco
+and English through tools. They adapt to any category: the category comes from
+the template, the skills and the business brain, not from retraining.
+
+### 6.3 How every message is handled
+
+```mermaid
+flowchart TD
+  M["Message in: customer or staff"] --> CTX["Context: business brain, memory, thread, who is asking"]
+  CTX --> SKL{"A skill fits?"}
+  SKL -->|yes| LOAD["Load the skill and its tools"]
+  SKL -->|no| FIND["ai.find_tools: load the few that match"]
+  LOAD & FIND --> MD{"Model"}
+  MD -->|tool call| GATE{"Policy gate"}
+  GATE -->|read| RUN["Run the tool"]
+  GATE -->|write| PLAN["Add to the plan"]
+  GATE -->|outside rules or unsure| HO["Hand off to staff"]
+  RUN -->|result| MD
+  PLAN --> APR{"Needs approval?"}
+  APR -->|no| RUN
+  APR -->|yes| CARD["Approval card to the owner"]
+  MD -->|final answer| OUT["Text + cards + buttons, streamed"]
+  OUT --> LOG["Log with personal data masked: audit and training data"]
+```
+
+### 6.4 Business brain
+
+Every answer reads:
+
+1. **Profile:** what the business sells, its tone, hours, rules (from Core)
+2. **Knowledge:** FAQs and policies the owner wrote (refunds, allergies,
+   delivery areas). The only place document search is allowed
+3. **Memory:** what the owner decided before ("no delivery after 11", "stop
+   selling the blueberry muffin")
+4. **Skills:** the list of skills, each with only its name and when to use it
+5. **Live data:** only through tools, never from memory
+
+### 6.5 The planner
+
+- For multi-step work the AI writes a plan first: the reads it did, the writes
+  it will do, and which writes need approval
+- The owner approves **once per plan**, not once per step
+- The planner runs the writes, then reads again to check the result
+- If a step fails, it stops, says what was done, and offers to undo it or finish it
+- Limits: a maximum number of steps per task; stop if the same tool fails twice
+- Every step is in the AI action log, with its undo
+
+### 6.6 How much the AI does alone
+
+The owner decides what the AI may do, per area or per tool, with one of three
+settings:
+
+| Setting | What happens |
+|---------|--------------|
+| **Not allowed** | The AI cannot do it at all. It can still suggest it, and a person does it |
+| **Ask first** | The AI prepares it and shows an approval card; nothing happens until someone with the right role approves |
+| **Act alone** | The AI does it and reports it after, with undo where there is one |
+
+The approval card has four buttons: **Approve**, **Approve and always allow
+this**, **Decline**, and **Never let the AI do this**. So the owner can change a
+setting at the moment it matters, or later in Settings.
+
+**Defaults** (each template can change them, and so can the owner):
+
+| Area | Default | Can be set to |
+|------|---------|---------------|
+| Answer customers: menu, prices, hours, order status | Act alone | any |
+| Accept orders customers confirmed in chat | Act alone (ask first = a staff member accepts each one) | any |
+| Support cases, apologies, vouchers within the limit | Act alone | any |
+| Log waste and sales the staff tell it about | Act alone | any |
+| Drafts: purchase orders, posts, campaigns, price suggestions | Act alone (a draft changes nothing outside) | any |
+| Send a purchase order | Ask first | any; above the limit always ask |
+| Change prices, edit the menu | Ask first | any |
+| Public: posts, website changes, review replies | Ask first | any |
+| A message to one customer (reminders, follow-ups) | Ask first | any |
+| Messages to many customers at once | **Always ask** | ask first or not allowed |
+| Money: refunds, discounts above the limit, spending above the limit | **Always ask** | ask first or not allowed |
+| People and setup: roles, members, credit limits, packs | **Always ask** | ask first or not allowed |
+
+Rules that no setting changes:
+
+- The AI never does more than the person it acts for may do. A manager's
+  approval counts only within the manager's limits
+- The AI can never raise its own permission. A change happens only when the
+  owner taps it in the app; a message ("the owner said you can") changes nothing
+- A customer confirms their own order; that is the customer's approval, not the
+  owner's, and it never covers anything else
+- The customer face has no settings to change: it only ever has its own
+  limited tools
+- Actions that cannot be fully undone (a message sent, a post seen, money paid)
+  start at ask first
+
+Every setting change is audited and emits `AiPermissionChanged`. Every AI action
+is written to the audit log with `actor_type = ai`.
+
+### 6.7 Threads and memory
+
+- Owner conversations are saved as threads ("Milk purchase order", "Latte
+  cost") and listed under Recent
+- Decisions in threads become memory after the owner confirms them
+- Customer conversations live in Channels; the AI keeps only its own notes
+
+### 6.8 Guardrails
+
+1. Exact data (prices, stock, totals) only from tools, never from memory or the model
+2. Tools follow the business's packs, the person's role, the face, and the
+   owner's settings for the AI (6.6)
+3. Risky actions wait for approval; a large action split into small ones is the
+   same action
+4. It asks when unsure ("which Mariam?")
+5. It hands off on complaints it cannot solve, requests for a human, a tool
+   failing twice, and messages that try to change its rules
+6. Customer messages are data, never instructions
+7. Personal data is masked in logs and training data
+8. Measured on a test set, rerun after every change
+
+### 6.9 The AI layer's own tools
+
+| Tool | Does |
+|------|------|
+| `ai.find_tools` | Finds the tools that match a task, filtered for this person |
+| `ai.load_skill` | Loads a skill's full steps |
+| `ai.search_knowledge` | Searches the business's FAQs and policies |
+| `ai.remember` | Saves a decision to memory, after the owner confirms |
+| `ai.ask_approval` | Sends an approval card and waits |
+| `ai.schedule` | Runs a skill or a plan later, or repeatedly |
+| `ai.save_skill` | Saves a new or edited skill, after the owner confirms |
+| `ai.get_permissions` | What the AI may do here: each area's setting and limit (6.6) |
+| `ai.set_permission` | Changes a setting. Called only by the app when the owner taps it; never by the AI |
+
+### 6.10 The models and training
+
+- **Our own models:** open base models, fine-tuned by the team with LoRA on
+  rented GPUs. No ready-made commercial model anywhere
+- **Candidates to compare** (check for newer versions first): a strong
+  tool-using family (for example Qwen3) and an Egyptian-dialect model (for
+  example Nile-Chat), for each tier
+- **What training teaches:** choosing and filling tools; following a skill;
+  composing tools when no skill fits; planning; handing off; replying in the
+  customer's dialect
+- **Training data:**
+
+| Source | What |
+|--------|------|
+| Open Arabic tool-use datasets | Arabic and Egyptian requests mapped to tool calls |
+| Open general tool-use datasets | The skill of choosing and filling tools |
+| Our hand-written examples | Coffee shop and small market conversations and skill runs |
+| Shop visits and pilots | Real requests and messages, cleaned and anonymized, from shops that agreed |
+
+- **One training example** = the request, the skill if any, the tool calls with
+  their inputs, the tool results, and the final answer. Personal data removed.
+  The format is part of the contracts, shared by the agent and the model
+- **Never train on the test set.** The `small_market` cases stay out of training
+  for the adaptation score
+
+The AI team owns the models: which base, which size, how many tiers, how they
+are tuned. The rest of the team's job is to give them what they need:
+
+| What they get | From |
+|---------------|------|
+| Every tool's description, inputs, outputs and examples, in a standard format the model server reads | Contracts |
+| The training example format | Contracts |
+| A fake backend that answers every tool from demo data, so they can record conversations and run the test set without the real backend | Backend |
+| Demo businesses: an invented coffee shop and small market with realistic data | Backend |
+| A dry-run mode: run a skill with no real writes | Backend |
+| The AI action log: every tool call, its result, the approval, and the owner's corrections, anonymized, as new training and test data | Backend |
+| One stable door for the agent (the AI API), with the service token and who it acts for | Backend |
+
+### 6.11 Serving
+
+Both tiers run on our own rented GPU servers, behind the standard
+chat-completions-with-tools API, with streaming. Swapping a base model changes
+settings, not code. If the model does not answer in time, the AI sends a short
+holding message or hands off.
+
+---
+
+## 7. Core
 
 The foundation every module stands on.
 
-### 3.1 What it owns
+### 7.1 What it owns
 
 ```
 business          id, name, slug, business_type, currency, timezone, locale,
-                  capabilities(jsonb), settings(jsonb), created_at
+                  template_key, settings(jsonb), created_at
 user              id, email, phone, name, password_hash, locale
+session           id, user_id, created_at, expires_at, last_seen_at
 membership        id, business_id, user_id, role, invited_by, joined_at
                   UNIQUE (business_id, user_id)
+invite            id, business_id, phone_or_email, role, token_hash, expires_at
 role              business_id, name, permissions(jsonb)
                   defaults: owner, manager, staff, viewer
 location          id, business_id, name, address, area      (branches)
-template_pack     key, version, content(jsonb)              (files, versioned)
+template          key, version, content(jsonb)              (files, versioned)
+pack              key, version, module, needs, content(jsonb) (files, versioned)
+business_pack     business_id, pack_key, status(on|off), settings(jsonb),
+                  changed_by, changed_at
 audit_log         id, business_id, actor_type(user|ai|system), actor_id,
                   action, object_type, object_id, before, after, created_at
 outbox            id, business_id, event_type, payload, created_at,
                   dispatched_at, attempts, last_error
 notification      id, business_id, user_id, type, title, body,
                   ref_type, ref_id, read_at, created_at
+api_key           id, business_id, name, scopes, created_at   (term 2)
 ```
 
-### 3.2 Templates: one engine, any business
+### 7.2 Templates: one engine, any business
 
 A business's app is composed from configuration, not code. A template pack holds:
 
 | Part | Coffee shop | Small market |
 |------|-------------|--------------|
-| Capabilities | recipes, modifiers, tables, loyalty, pickup and delivery | credit accounts, expiry dates, barcodes, delivery |
+| Packs on (7.3) | recipes, options, tables, loyalty, pickup and delivery | credit accounts, expiry dates, barcodes, delivery |
 | Item fields | size, milk type, extra shot | brand, unit, barcode, expiry |
 | Order stages | new, preparing, ready, collected or delivered | new, packed, out for delivery, delivered |
 | Home items | stock running out, cash gap, slow hours | debts due, items expiring, stock running out |
 | AI rules | tone, which actions need approval | tone, credit limits, which actions need approval |
+| Skills | milk check before the rush, match-night bookings | debt reminders, expiry discounts |
 
-`capabilities` = template defaults merged with the business's own overrides. The
-screens, the AI tools and the event listeners all read the same result. If a
-capability is off, its screens hide and its AI tools do not exist for that business.
+A template is a recommended set of packs (7.3) plus its fields, stages, rules and
+skills. A new business type is a new template file, not new code.
 
-A new business type is a new template file, not new code.
+### 7.3 Essentials and the library
 
-### 3.3 Events infrastructure
+A business does not have to use all of the ERP, or even most of it. Every
+business gets the **essentials**, which are always on. Everything else is a
+**pack** in the **library**, which the owner turns on when they want it and off
+when they do not.
+
+**Essentials (always on):**
+
+| Module | What every business gets |
+|--------|--------------------------|
+| Core | The business, members and roles, locations, audit, notifications |
+| AI | Home chat for the owner and staff, the customer face, approvals, skills |
+| ERP | **Catalog only:** items or services, sizes, prices, categories, available or not. This is what the AI answers customers from |
+| CRM | Customers, identities, timeline, notes, tags, follow-ups |
+| Channels | Website chat and the Inbox |
+| Store | The shop page: the catalog and the chat |
+| Reports | Home numbers, from whatever packs are on |
+
+**The library:**
+
+| Pack | Module | Adds | Needs | Term |
+|------|--------|------|-------|:----:|
+| `orders` | ERP | Orders from chat and the website, stages, payments, order status page | catalog | 1 |
+| `options` | ERP | Modifiers: milk type, extra shot, sugar | catalog | 1 |
+| `delivery` | ERP | Delivery areas and fees | orders | 1 |
+| `tables` | ERP | Dine-in and table numbers | orders | 1 |
+| `sales_screen` | ERP | Counter sales on a tablet or phone | orders | 1 |
+| `shifts_cash` | ERP | Shifts, the cash count, cash gaps | sales_screen | 1 |
+| `stock` | ERP | The stock ledger, levels, waste, counts, forecasts | catalog | 1 |
+| `recipes` | ERP | Ingredients, recipes, cost and margin per item | stock | 1 |
+| `purchasing` | ERP | Suppliers, purchase orders, receiving | stock | 1 |
+| `expiry` | ERP | Expiry dates and alerts | stock | 1 basic, 2 full |
+| `barcodes` | ERP | Barcodes on items and the sales screen | sales_screen | 1 |
+| `credit` | ERP | Customer debts, limits, reminders | orders | 1 basic, 2 full |
+| `expenses` | ERP | Expenses, and profit after expenses | | 1 |
+| `branches` | ERP | More than one location, stock transfers | stock | 2 |
+| `online_payments`, `couriers` | ERP | Outside payment and courier services | orders | 2 |
+| `offline_sales`, `e_invoicing` | ERP | Selling without internet; tax invoices | sales_screen | 2 |
+| `loyalty` | CRM | Points and rewards | orders | 1 |
+| `support` | CRM | Support cases and vouchers | | 1 |
+| `bookings` | CRM | Table or appointment bookings | | 1 basic, 2 full |
+| `segments_consent` | CRM | Saved customer groups, marketing consent | | 2 |
+| `telegram` | Channels | The Telegram bot | | 1 |
+| `whatsapp` | Channels | WhatsApp | | 1 if Meta approves, 2 |
+| `instagram_facebook` | Channels | Instagram and Facebook messages | | 2 |
+| `website` | Store | Full site: pages, banner, which items show | | 1 basic, 2 full |
+| `search_presence` | Store | SEO and GEO, the Google profile, reviews | website | 2 |
+| `studio` | Studio | Brand kit, designs, post images, posts | | 2 (brand kit 1 if time) |
+| `marketing` | Marketing | Offers and campaigns | segments_consent | 2 |
+| `team` | Team | Rota, attendance, tasks | | 2 |
+
+Templates turn on their packs by default; the owner can change any of them:
+
+| Template | Packs on |
+|----------|----------|
+| Coffee shop | orders, options, tables, delivery, sales_screen, shifts_cash, stock, recipes, purchasing, expenses, loyalty, support, bookings, telegram, website |
+| Small market | orders, delivery, sales_screen, shifts_cash, barcodes, stock, purchasing, expiry, credit, expenses, support, telegram, website |
+
+**A business that hardly uses the ERP:**
+
+- *A shop that keeps its own cash register:* essentials plus `telegram`. The AI
+  answers from the catalog. With `orders` off, a chat order becomes an **order
+  request**: the AI writes it out, hands it to staff in the Inbox, and notes it
+  on the customer's timeline
+- *A salon:* a catalog of services, plus `bookings`, `support` and `telegram`.
+  No stock, no sales screen
+- *Later:* the catalog can come from the business's own system (import, or the
+  outside API in term 2), so the AI works on top of software they already use
+
+**How a pack works:**
+
+1. Each pack is one file in the contracts: its key, its module, what it needs,
+   its tools, its windows and sections, its skills, its event listeners, its
+   settings, and a setup skill
+2. **One switch for everything.** The pack is the capability: a tool's
+   capability field names its pack. When a pack is off, its tools do not exist
+   for that business, its windows and sidebar items hide, its skills are not
+   offered, and its listeners do nothing
+3. **Events still flow.** ERP always emits `OrderCompleted`; if `loyalty` is off,
+   no points are added; if `stock` is off, no stock is deducted. No module needs
+   to know which packs another business has on
+4. **Skills say what they need.** A skill lists its packs (`needs: [orders]`), and
+   a step can depend on one (`if stock: erp.get_stock_levels`), so one skill
+   works for businesses with different packs
+5. **Turning on:** owner only, from Settings or by asking the AI. Packs it needs
+   are turned on too, after the owner confirms. The setup skill walks them
+   through it ("add your ingredients, or send a photo of your invoice").
+   Emits `PackTurnedOn`
+6. **Turning off:** refused while another pack that is on needs it (the owner
+   can turn both off), and while it has open work (an open shift, open orders,
+   purchase orders not received). The data is kept and hidden, never deleted,
+   and comes back when the pack is turned on again. Emits `PackTurnedOff`
+7. **The AI suggests packs, never turns them on.** "You tell me about spoiled
+   milk every day; want stock tracking?" comes as an approval card
+8. Every module's tables exist for every business; a pack only switches access,
+   so turning one on needs no database change
+
+Whether some packs become paid plans is a business-model question for the team,
+not part of this design yet.
+
+### 7.4 Events infrastructure
 
 1. A service writes the change and an outbox row in one transaction
-2. A dispatcher reads undispatched rows and delivers them to listeners
+2. A dispatcher reads undispatched rows and delivers them to listeners,
+   including the AI layer
 3. Delivered rows are marked; failures retry
+4. A scheduler emits time-based events: expiring stock, quiet regulars, the
+   morning briefing, scheduled posts
+
+**Emits:** `BusinessCreated`, `MemberInvited`, `MemberJoined`, `RoleChanged`,
+`PackTurnedOn`, `PackTurnedOff`
+
+### 7.5 Core tools
+
+| Tool | Does | R/W | Approval | Customer |
+|------|------|:---:|----------|:--------:|
+| `core.get_business` | Profile, hours, location, delivery areas | R | | yes |
+| `core.update_business` | Hours, settings, profile | W | | |
+| `core.list_packs` | Packs on, packs in the library, what each needs | R | | |
+| `core.turn_on_pack` | Turn a pack on, with the packs it needs (undo: turn off) | W | always | |
+| `core.turn_off_pack` | Turn a pack off; its data is kept (undo: turn on) | W | always | |
+| `core.list_members` | Members and roles | R | | |
+| `core.invite_member` | Invite by phone or email with a role | W | | |
+| `core.change_role` | Change a member's role | W | always | |
+| `core.remove_member` | Remove a member | W | always | |
+| `core.list_locations` | Branches | R | | yes |
+| `core.get_audit_log` | Who changed what | R | | |
+| `core.notify` | Notification to a member | W | | |
 
 ---
 
-## 4. ERP
+## 8. ERP
 
 Operations: what the business sells and what happens to it.
 
-### 4.1 Catalog and recipes
+### 8.1 What it owns
 
 ```
 item            id, business_id, name, category_id, type(product|menu_item|service),
-                custom_fields(jsonb), active
+                custom_fields(jsonb), photo_url, active
 variant         id, item_id, name, sku, barcode, attributes(jsonb),
                 price_cents, currency, active
 modifier_group  id, business_id, name (milk type, extra shot), rules(jsonb)
@@ -234,27 +933,13 @@ modifier        id, group_id, name, price_cents, ingredient_effects(jsonb)
 category        id, business_id, name, parent_id
 ingredient      id, business_id, name, unit (g, ml, piece), cost_cents_per_unit
 recipe_line     variant_id, ingredient_id, qty             (what one sale uses)
-```
 
-A sale of a menu item deducts its recipe's ingredients. A product sold as-is
-(a bottle of water, a pack of biscuits) deducts itself.
-
-### 4.2 Stock
-
-```
 stock_movement  id, business_id, location_id, stock_ref(ingredient|variant),
                 type(in|out|sale|waste|adjust|transfer|reserve|release),
                 qty, unit_cost_cents, reason, expiry_date, ref_type, ref_id,
                 created_at, created_by
 stock_level     business_id, location_id, stock_ref, on_hand, reserved   (cache)
-```
 
-Waste is a movement with a reason ("spoiled milk"), logged by tapping or by
-telling the AI.
-
-### 4.3 Sales and orders
-
-```
 order           id, business_id, number, location_id, customer_id, channel
                 (counter|website|chat|phone), type(dine_in|pickup|delivery),
                 status, subtotal_cents, discount_cents, delivery_cents,
@@ -267,9 +952,31 @@ order_event     id, order_id, from_status, to_status, actor_type, actor_id,
                 reason, created_at
 payment         id, business_id, order_id, method(cash|card|wallet|on_account),
                 amount_cents, status, paid_at
+
+shift           id, business_id, location_id, opened_by, opened_at,
+                opening_cash_cents, closed_by, closed_at, counted_cash_cents,
+                expected_cash_cents, difference_cents, note
+cash_movement   id, shift_id, type(in|out), amount_cents, reason, created_by
+
+supplier        id, business_id, name, phone, items_supplied(jsonb)
+purchase_order  id, business_id, number, supplier_id, status
+                (draft|approved|sent|received|cancelled), total_cents, created_by_type
+purchase_line   id, purchase_order_id, stock_ref, qty, unit_cost_cents
+
+credit_account  id, business_id, customer_id, limit_cents, balance_cents
+credit_entry    id, account_id, type(charge|payment), amount_cents, ref, created_at
+
+expense         id, business_id, category, amount_cents, date, note, receipt_url
 ```
 
-Order life (stages come from the template):
+A sale of a menu item deducts its recipe's ingredients. A product sold as-is (a
+bottle of water) deducts itself. Waste is a movement with a reason. Receiving a
+purchase adds stock movements and updates ingredient costs. Profit per item =
+price minus recipe cost at the time of sale (from the snapshot).
+
+### 8.2 Order life
+
+Stages come from the template:
 
 ```
 new --> accepted --> preparing --> ready --> collected / delivered
@@ -280,363 +987,967 @@ new --> accepted --> preparing --> ready --> collected / delivered
 | Move | What happens |
 |------|-------------|
 | new to accepted | reserve stock, emit `OrderCreated` |
-| accepted to preparing | none |
-| ready | notify the customer on their channel |
+| ready | emit `OrderReady`; Channels tells the customer |
 | collected or delivered | deduct stock (sale movement), mark paid if cash, emit `OrderCompleted` |
 | cancelled | release reserved stock, emit `OrderCancelled` |
 
 A counter sale is created and completed in one step. All moves live in one
 place; any other move is rejected.
 
-### 4.4 Shifts and cash
-
-```
-shift           id, business_id, location_id, opened_by, opened_at,
-                opening_cash_cents, closed_by, closed_at, counted_cash_cents,
-                expected_cash_cents, difference_cents, note
-```
+### 8.3 Shifts and cash
 
 Closing a shift compares counted cash with expected cash from sales. A gap emits
-`CashGapFound`.
+`CashGapFound`. The AI never opens or closes a shift: counting cash is a
+person's job. The AI reminds and reports.
 
-### 4.5 Suppliers and purchases
-
-```
-supplier        id, business_id, name, phone, items_supplied(jsonb)
-purchase_order  id, business_id, number, supplier_id, status
-                (draft|approved|sent|received|cancelled), total_cents, created_by_type
-purchase_line   id, purchase_order_id, stock_ref, qty, unit_cost_cents
-```
-
-Receiving a purchase adds stock movements and updates ingredient costs. A cost
-change emits `CostChanged`, which can trigger a price suggestion.
-
-### 4.6 Credit accounts (small markets)
-
-```
-credit_account  id, business_id, customer_id, limit_cents, balance_cents
-credit_entry    id, account_id, type(charge|payment), amount_cents, ref, created_at
-```
-
-### 4.7 Money
-
-```
-expense         id, business_id, category, amount_cents, date, note, receipt_url
-```
-
-Profit per item = price minus recipe cost at the time of sale (from the snapshot).
-
-### 4.8 What ERP exposes
+### 8.4 Events
 
 **Emits:** `OrderCreated`, `OrderReady`, `OrderCompleted`, `OrderCancelled`,
-`PaymentReceived`, `StockLow`, `StockExpiring`, `WasteLogged`, `CashGapFound`,
-`CostChanged`, `PurchaseReceived`
+`PaymentReceived`, `RefundIssued`, `StockLow`, `StockExpiring`, `WasteLogged`,
+`CashGapFound`, `CostChanged`, `PriceChanged`, `PurchaseReceived`, `DebtDue`
 
-**Read calls:** `getOrder360(number)`, `getOrdersByCustomer(id)`, `getItemCost(variant)`,
-`getStockLevels(filter)`, `getSales(period, group_by)`
+**Never does:** write to another module's tables, or send messages. It emits events.
 
-**Never does:** write to CRM or Channels, or send messages. It emits events.
+### 8.5 ERP tools
+
+R/W is read or write. **Customer** marks the tools the customer face gets,
+limited as written. T2 marks term 2.
+
+**Catalog**
+
+| Tool | Does | R/W | Approval | Customer |
+|------|------|:---:|----------|:--------:|
+| `erp.search_items` | Search the menu by name, category, available now | R | | yes |
+| `erp.get_item` | Item with sizes, options, price, photo, and its cost if the role allows | R | | without cost |
+| `erp.list_categories` | Menu sections | R | | yes |
+| `erp.create_item` | New item with sizes and options | W | | |
+| `erp.update_item` | Name, description, photo, category, template fields | W | | |
+| `erp.change_price` | New price | W | always | |
+| `erp.set_availability` | Sold out today, back in stock | W | | |
+| `erp.manage_modifiers` | Option groups: milk type, extra shot, sugar | W | | |
+| `erp.archive_item` | Hide an item (undo: restore) | W | | |
+
+**Recipes and costs**
+
+| Tool | Does | R/W | Approval | Customer |
+|------|------|:---:|----------|:--------:|
+| `erp.list_ingredients` | Ingredients with unit and cost | R | | |
+| `erp.create_ingredient` | New ingredient | W | | |
+| `erp.update_ingredient` | Unit, cost, supplier | W | | |
+| `erp.get_recipe` | What one sale uses | R | | |
+| `erp.set_recipe` | Recipe lines for an item or size | W | | |
+| `erp.get_item_cost` | Cost now, margin, change since last month | R | | |
+| `erp.suggest_price` | Price for a target margin | R | | |
+
+**Stock**
+
+| Tool | Does | R/W | Approval | Customer |
+|------|------|:---:|----------|:--------:|
+| `erp.get_stock_levels` | Levels; filter low, expiring, by branch | R | | |
+| `erp.get_stock_history` | Movements for one ingredient or product | R | | |
+| `erp.forecast_stock` | When it runs out, at the current pace | R | | |
+| `erp.log_waste` | Waste with a reason | W | | |
+| `erp.adjust_stock` | Count correction | W | above a limit | |
+| `erp.record_stock_in` | Stock bought without a purchase order | W | | |
+| `erp.transfer_stock` T2 | Between branches | W | | |
+
+**Orders and sales**
+
+| Tool | Does | R/W | Approval | Customer |
+|------|------|:---:|----------|:--------:|
+| `erp.create_order` | Pickup, delivery or dine-in order | W | discount above the limit | yes |
+| `erp.record_counter_sale` | Sale created and paid in one step | W | | |
+| `erp.get_order` | One order by number, with lines, status, payment | R | | own only |
+| `erp.list_orders` | Open, today, by channel, by customer | R | | |
+| `erp.update_order_status` | Move to the next stage | W | | |
+| `erp.edit_order` | Add or remove lines before preparing | W | | own, before accepted |
+| `erp.cancel_order` | Cancel; releases stock | W | if paid | own, before accepted |
+| `erp.apply_discount` | Discount on an order | W | above the limit | |
+
+**Payments**
+
+| Tool | Does | R/W | Approval | Customer |
+|------|------|:---:|----------|:--------:|
+| `erp.record_payment` | Cash, card, wallet, on account | W | | |
+| `erp.list_payments` | By period, method, shift | R | | |
+| `erp.refund_payment` | Full or partial refund | W | always | |
+
+**Shifts and cash**
+
+| Tool | Does | R/W | Approval | Customer |
+|------|------|:---:|----------|:--------:|
+| `erp.get_shift` | The open shift: expected cash so far | R | | |
+| `erp.list_shifts` | Past shifts with gaps | R | | |
+| `erp.record_cash_movement` | Cash in or out of the drawer | W | above a limit | |
+
+**Suppliers and purchasing**
+
+| Tool | Does | R/W | Approval | Customer |
+|------|------|:---:|----------|:--------:|
+| `erp.list_suppliers` | Suppliers and what they supply | R | | |
+| `erp.get_supplier` | Prices, history, delivery days | R | | |
+| `erp.create_supplier` | New supplier | W | | |
+| `erp.update_supplier` | Contact, items, prices | W | | |
+| `erp.compare_supplier_prices` | Same ingredient across suppliers | R | | |
+| `erp.draft_purchase_order` | Draft from low stock or by request | W | | |
+| `erp.update_purchase_order` | Lines, quantities | W | | |
+| `erp.send_purchase_order` | Send to the supplier | W | above a limit | |
+| `erp.receive_purchase` | Full or partial delivery, actual costs | W | | |
+| `erp.cancel_purchase_order` | Cancel | W | | |
+
+**Credit accounts (small market)**
+
+| Tool | Does | R/W | Approval | Customer |
+|------|------|:---:|----------|:--------:|
+| `erp.get_credit_account` | Balance, limit, history | R | | own balance |
+| `erp.list_debts` | Due and overdue | R | | |
+| `erp.charge_on_account` | Sale on credit | W | above the customer's limit | |
+| `erp.record_debt_payment` | Payment against a debt | W | | |
+| `erp.set_credit_limit` | Change a customer's limit | W | always | |
+
+**Money**
+
+| Tool | Does | R/W | Approval | Customer |
+|------|------|:---:|----------|:--------:|
+| `erp.record_expense` | Rent, salaries, bills, with a receipt photo | W | | |
+| `erp.list_expenses` | By period and category | R | | |
 
 ---
 
-## 5. CRM
+## 9. CRM and support
 
-Relationships: who the customers are.
+Relationships: who the customers are, and what they need from the business.
+
+### 9.1 What it owns
 
 ```
-customer         id, business_id, name, area, lifecycle_stage, owner_user_id,
-                 custom_fields(jsonb), first_seen_at
+customer          id, business_id, name, area, lifecycle_stage, owner_user_id,
+                  custom_fields(jsonb), first_seen_at, merged_into, forgotten_at
 customer_identity id, business_id, customer_id, type(phone|whatsapp|telegram|
-                 instagram|email), value_normalized, value_raw, verified
-                 UNIQUE (business_id, type, value_normalized)
-activity         id, business_id, customer_id, type(message|order|payment|note|
-                 task|loyalty|booking), source_module, ref_type, ref_id,
-                 summary, actor_type, occurred_at
-customer_stats   customer_id, orders_count, total_spent_cents, avg_order_cents,
-                 usual_order(jsonb), last_order_at, last_message_at      (cache)
-loyalty_account  customer_id, points, tier
-loyalty_entry    id, customer_id, points, reason, ref, created_at
-booking          id, business_id, customer_id, starts_at, party_size, deposit_cents,
-                 status, note
-tag, customer_tag, note, task                                  (engagement)
-segment          id, business_id, name, filter(jsonb)          (term 2)
-consent          id, business_id, customer_id, channel, status (term 2)
+                  instagram|email), value_normalized, value_raw, verified
+                  UNIQUE (business_id, type, value_normalized)
+activity          id, business_id, customer_id, type(message|order|payment|note|
+                  task|loyalty|booking|case), source_module, ref_type, ref_id,
+                  summary, actor_type, occurred_at
+customer_stats    customer_id, orders_count, total_spent_cents, avg_order_cents,
+                  usual_order(jsonb), last_order_at, last_message_at      (cache)
+loyalty_account   customer_id, points, tier
+loyalty_entry     id, customer_id, points, reason, ref, created_at
+support_case      id, business_id, number, customer_id, order_id, conversation_id,
+                  type(complaint|request|question), status(open|waiting|resolved),
+                  priority, assigned_to, resolution, created_at, resolved_at
+case_event        id, case_id, type, note, actor_type, actor_id, created_at
+voucher           id, business_id, customer_id, value_cents, reason, case_id,
+                  expires_at, used_at
+booking           id, business_id, customer_id, starts_at, party_size,
+                  deposit_cents, status, note
+tag, customer_tag, note, follow_up                           (engagement)
+segment           id, business_id, name, filter(jsonb)        (term 2)
+consent           id, business_id, customer_id, channel, status (term 2)
 ```
 
-### 5.1 Identity matching
+### 9.2 Identity matching
 
 A message from a phone number is normalized (Egyptian numbers to +20 form) and
 looked up. Found: same customer. Not found: new customer. Possible duplicates
 become a merge **suggestion**, never an automatic merge.
 
-### 5.2 What CRM consumes and emits
+### 9.3 Support
 
-| Event | Effect in CRM |
-|-------|---------------|
-| `MessageReceived` | find or create the customer, add activity |
-| `OrderCreated`, `OrderCompleted` | activity, stats, usual order, loyalty points |
-| `PaymentReceived` | activity, credit balance if on account |
+A complaint or request becomes a case linked to the customer, the order and the
+conversation. The AI opens it, tries to solve it within the owner's rules
+(apology, replacement, a voucher within the limit), and hands off when it
+cannot. A refund goes through ERP and always needs approval. Every case can have
+a follow-up ("ask Mariam tomorrow if the new order was right").
 
-**Emits:** `CustomerCreated`, `CustomerInactive` (a regular stopped coming),
-`LoyaltyRewardReached`, `BookingCreated`
+### 9.4 Events
+
+**Consumes:** `MessageReceived` (find or create the customer, add activity),
+`OrderCreated` and `OrderCompleted` (activity, stats, usual order, points),
+`PaymentReceived` (activity, credit balance), `RefundIssued` (case activity)
+
+**Emits:** `CustomerCreated`, `CustomerMerged`, `CustomerForgotten`,
+`CustomerInactive`, `LoyaltyRewardReached`, `CaseOpened`, `CaseResolved`,
+`BookingCreated`, `ConsentChanged`
+
+**Service calls for other modules:** `resolve_customer(identity)` (find or
+create by phone, Telegram ID, handle), `get_customer_ref(customer_id)` (exists,
+name, follows `merged_into`)
+
+### 9.5 CRM tools
+
+**Customers**
+
+| Tool | Does | R/W | Approval | Customer |
+|------|------|:---:|----------|:--------:|
+| `crm.find_customer` | By name or phone | R | | |
+| `crm.get_customer` | Full view: history, usual order, points, notes, open cases | R | | self only |
+| `crm.list_customers` | Filter: regulars, quiet, new, area, spend | R | | |
+| `crm.get_timeline` | Everything that happened with this customer | R | | |
+| `crm.create_customer` | New customer | W | | |
+| `crm.update_customer` | Name, area, template fields | W | | self: name, area |
+| `crm.suggest_merge` | Possible duplicates | R | | |
+| `crm.merge_customers` T2 | Merge two records | W | always | |
+
+**Engagement**
+
+| Tool | Does | R/W | Approval | Customer |
+|------|------|:---:|----------|:--------:|
+| `crm.add_note` | Note on a customer | W | | |
+| `crm.tag_customer` | Add or remove tags | W | | |
+| `crm.create_follow_up` | "Call Mariam Thursday", for staff or the AI | W | | |
+
+**Loyalty**
+
+| Tool | Does | R/W | Approval | Customer |
+|------|------|:---:|----------|:--------:|
+| `crm.get_loyalty` | Points, tier, next reward | R | | self |
+| `crm.add_points` | Add points with a reason | W | above a limit | |
+| `crm.redeem_reward` | Use a reward on an order | W | | self |
+| `crm.update_loyalty_rules` | Points per pound, rewards | W | always | |
+
+**Support**
+
+| Tool | Does | R/W | Approval | Customer |
+|------|------|:---:|----------|:--------:|
+| `crm.open_case` | Complaint or request, linked to the order and the chat | W | | yes |
+| `crm.get_case` | Status and history | R | | own |
+| `crm.list_cases` | Open, by priority, by staff member | R | | |
+| `crm.update_case` | Status, priority, assign to staff | W | | |
+| `crm.add_case_note` | Note on a case | W | | |
+| `crm.issue_voucher` | Voucher as compensation | W | above a limit | |
+| `crm.resolve_case` | Close with a result: apology, replacement, voucher, or refund (calls `erp.refund_payment`) | W | per the result | |
+
+**Bookings** (basic in term 1, full in term 2)
+
+| Tool | Does | R/W | Approval | Customer |
+|------|------|:---:|----------|:--------:|
+| `crm.check_availability` | Free times for a party size | R | | yes |
+| `crm.create_booking` | Book, with an optional deposit | W | | yes |
+| `crm.update_booking` | Time, size | W | | own |
+| `crm.cancel_booking` | Cancel | W | | own |
+| `crm.list_bookings` | Today, this week | R | | |
+
+**Segments and consent** (term 2)
+
+| Tool | Does | R/W | Approval | Customer |
+|------|------|:---:|----------|:--------:|
+| `crm.create_segment` | Saved filter: "Tuesday regulars" | W | | |
+| `crm.list_segment_members` | Who is in it | R | | |
+| `crm.get_consent` | Who agreed to marketing messages, on which channel | R | | |
+| `crm.record_consent` | Opt in or out ("stop" in chat = opt out) | W | | yes |
 
 ---
 
-## 6. Channels
+## 10. Channels
 
-Where messages come from. Separate from CRM so a new channel never touches CRM.
+Where messages come from and go to. Separate from CRM, so a new channel never
+touches CRM.
+
+### 10.1 What it owns
 
 ```
-channel_account  id, business_id, type(website_chat|telegram|whatsapp|instagram),
-                 external_id, token_ref, status, connected_at
+channel_account  id, business_id, type(website_chat|telegram|whatsapp|instagram|
+                 facebook), external_id, token_ref, status, connected_at
 conversation     id, business_id, channel_account_id, customer_id,
                  external_thread_id, state(open|waiting|closed),
-                 handled_by(ai|user), assigned_to, last_message_at, window_expires_at
+                 handled_by(ai|user), assigned_to, tags, last_message_at,
+                 window_expires_at
 message          id, business_id, conversation_id, direction(in|out), external_id,
-                 body, type(text|image|audio|location|template), sender_type
+                 body, type(text|image|audio|location|template|card), sender_type
                  (customer|ai|user), delivery_status, created_at
                  UNIQUE (business_id, external_id)
 attachment       id, message_id, type, url, transcript
+auto_reply       id, business_id, channel_account_id, kind(away|hours|greeting),
+                 body, schedule(jsonb), active
 ```
 
 - One normalized message shape, one adapter per channel
 - Webhook, then queue, then process; duplicates are ignored
 - **Order of channels:** website chat and Telegram first (no outside approval),
-  WhatsApp as soon as Meta approves (start the request in week 4), Instagram later
+  WhatsApp as soon as Meta approves, Instagram and Facebook later
+- Social posts are published through the same adapters, for Studio
 - Voice notes are transcribed; images are kept for the AI (menu photos, receipts)
 
-**Emits:** `MessageReceived`, `MessageSent`, `ConversationHandedOff`
-**Consumes:** `OrderReady` (tell the customer), `OrderCreated` (confirmation)
+**Emits:** `MessageReceived`, `MessageSent`, `ConversationHandedOff`,
+`PostPublished`
+**Consumes:** `OrderCreated` (confirmation), `OrderReady` (tell the customer)
+
+### 10.2 Channels tools
+
+| Tool | Does | R/W | Approval | Customer |
+|------|------|:---:|----------|:--------:|
+| `channels.list_conversations` | Open, waiting, by channel, handled by AI or staff | R | | |
+| `channels.get_conversation` | Messages and state | R | | own |
+| `channels.reply` | Reply in a conversation | W | | yes (its own reply) |
+| `channels.send_message` | Start a message to one customer | W | more than one customer | |
+| `channels.handoff_to_staff` | Pass the chat to a person, with the reason | W | | yes |
+| `channels.hand_back_to_ai` | Staff give the chat back | W | | |
+| `channels.assign_conversation` | To a staff member | W | | |
+| `channels.tag_conversation` | Add or remove tags | W | | |
+| `channels.close_conversation` | Close | W | | |
+| `channels.list_channels` | Connected channels and their status | R | | |
+| `channels.set_auto_reply` | Away, opening hours, greeting | W | | |
+| `channels.publish_post` T2 | Publish a Studio post to a channel | W | public (see 6.6) | |
 
 ---
 
-## 7. Store website
+## 11. Store website and search presence
 
-Each business gets a simple website it manages from the dashboard:
+### 11.1 Store website
 
-- Menu or catalog from the ERP, always live (prices, what is available)
-- Ordering for pickup or delivery, with payment on collection or delivery
-- A chat window answered by the AI (the website chat channel)
+Each business gets a simple website it manages from the app:
+
+- Menu or catalog from ERP, always live (prices, what is available)
+- The chat is the main way to order: pickup or delivery, payment on collection
+  or delivery (online payment in term 2)
 - Opening hours, location, booking requests
+- An order status page, sent as a link after ordering
 
 Orders from the website go into the same order flow as every other channel.
 
----
+### 11.2 Search presence (SEO and GEO, term 2)
 
-## 8. AI layer
-
-The main part of the product. our tuned models, two faces.
-
-### 8.1 Customer agent
-
-- Talks to customers on every channel in Egyptian Arabic, Franco and English
-- Answers menu, price, availability, hours and location questions from tools
-- Takes orders and bookings, confirms them, tells the customer when the order is ready
-- Recognizes regulars ("your usual?") and applies loyalty
-- Hands off to staff when unsure, on complaints, or on anything outside its rules
-
-### 8.2 Owner partner
-
-- Answers the owner and staff: "how much did I sell today?", "what is my cost on
-  a latte now?", "who owes me money?"
-- Acts by talking: add an item, change a price, log waste, record a delivery
-- Answers with the app's own cards and buttons, limited by the user's role
-
-### 8.3 Proactive jobs (the AI manages, not only answers)
-
-| Job | When | Output |
-|-----|------|--------|
-| Morning briefing | Every morning | What needs attention today |
-| Stock running out | On `StockLow`, and by forecast | Draft purchase order for approval |
-| Cash gap | On `CashGapFound` | Alert with the shift and the gap |
-| Cost changed | On `CostChanged` | New cost per item and a price suggestion |
-| Expiring items | On `StockExpiring` | Suggested discount |
-| Regular went quiet | On `CustomerInactive` | Draft win-back message (term 2 sends) |
-| Monthly value report | Every month | Money saved and earned, in pounds |
-
-### 8.4 How much the AI does alone
-
-The AI runs the daily work itself. The owner sets the rules once; only risky
-actions wait for approval.
-
-| Alone | Needs approval |
-|-------|----------------|
-| Answer customers, take normal orders, confirm, notify | Discounts above a limit, refunds |
-| Log waste and sales the staff tell it about | Purchase orders above a limit |
-| Draft purchase orders and price suggestions | Changing prices |
-| Remind about debts (polite, rules from the owner) | Messages to many customers at once |
-
-The limits live in the template and the business settings. Every AI action is
-written to the audit log with `actor_type = ai`.
-
-### 8.5 Business brain
-
-Every AI answer reads three things:
-
-1. **Profile:** what the business sells, its tone, its hours, its rules
-2. **Tools:** live data from the modules (prices and stock always come from here)
-3. **Memory:** what the owner decided before ("no delivery after 11", "stop
-   selling the blueberry muffin")
-
-### 8.6 Tools (starting set)
-
-```
-search_menu(query)                get_item(variant_id)
-check_stock(stock_ref)            get_item_cost(variant_id)
-create_order(customer, lines, type, channel)    get_order_360(number)
-update_order_status(number, status)             list_orders(filter)
-record_sale(lines, payment)       log_waste(stock_ref, qty, reason)
-find_customer(name_or_phone)      get_customer_360(customer_id)
-add_loyalty(customer_id, points)  create_booking(customer, time, size)
-get_sales(period, group_by)       get_cash_status(shift)
-draft_purchase_order(supplier, lines)           suggest_price(variant_id)
-add_note(customer_id, text)       handoff_to_staff(conversation_id, reason)
-send_message(conversation_id, text)
-```
-
-Each tool states what it needs, what it returns, which roles may use it, and
-whether it needs approval. The tool list a business sees follows its capabilities
-and the user's role.
-
-### 8.7 The model
-
-- **Our own model:** an open base model, fine-tuned by the team. No ready-made
-  commercial model anywhere
-- **One model for any category.** It learns to manage a small business through
-  tools; the category comes from the template and the business brain, not from
-  retraining
-- **Showcase:** trained and tested deeply on coffee shops and small markets
-- **Adaptation test:** measured on a category it saw little or nothing of in training
-- **Method:** parameter-efficient fine-tuning (LoRA) of a small open model, on
-  rented GPUs
-- **Also open, also tunable:** speech-to-text for voice notes, an image model for
-  menu photos and supplier invoices (term 2 for both if time is short)
-- **Candidates to compare** (check for newer versions first): a strong tool-using
-  family (for example Qwen3 4B to 8B) and an Egyptian-dialect model (for example
-  Nile-Chat). Comparing both is part of the research
-
-### 8.8 Training data
-
-| Source | What |
-|--------|------|
-| Open Arabic tool-use datasets | Arabic and Egyptian requests mapped to tool calls |
-| Open general tool-use datasets | The skill of choosing and filling tools |
-| Our hand-written examples | Coffee shop and small market conversations, in the format we agree on |
-| Shop visits and pilots | Real requests and messages, cleaned and anonymized |
-
-One training example = the request, the tool calls with their inputs, the tool
-results, and the final answer. Personal data is removed before training.
-
-### 8.9 Guardrails
-
-1. Exact data (prices, stock, totals) only comes from tools, never from memory
-2. Tools follow capabilities and roles
-3. Risky actions wait for approval
-4. It asks when unsure ("which Mariam?")
-5. It hands off on complaints and anything outside its rules
-6. Personal data is masked in logs and training data
-7. Measured on a test set, rerun after every change
-
-### 8.10 Serving
-
-The tuned model runs on our own GPU server (rented). The AI layer calls it, gets
-tool calls back, runs them through the modules' tools, and returns the answer.
-
----
-
-## 9. Studio, marketing and founder tools
-
-Designed now, built mostly in term 2.
-
-- **Studio:** brand kit (colors, fonts, logo composed from templates), menu and
-  catalog design, store website look, social posts drafted by the AI
-- **Marketing:** offers for slow hours, campaigns to segments, follow-ups and
-  win-back messages, with consent checked before every send
-- **Founder tools:** for new businesses: idea, validation, pricing, a simple
-  projection, a launch checklist
-- **GEO:** structured data and clean descriptions on the store website so AI
+- Clean descriptions and structured data on every page, so search engines and AI
   search tools understand and recommend the business
+- The Google business profile kept in sync (hours, menu, photos)
+- Reviews read and answered
+- A search presence score with the issues to fix
+
+### 11.3 What it owns
+
+```
+store_settings   business_id, slug, domain, theme(jsonb), sections(jsonb), published
+store_page       id, business_id, kind(home|menu|about|custom), content(jsonb),
+                 seo(jsonb), published_at
+search_profile   business_id, descriptions(jsonb), structured_data(jsonb),
+                 listing_status(jsonb), score, checked_at          (term 2)
+review           id, business_id, source, rating, body, reply, replied_at (term 2)
+```
+
+**Emits:** `SitePublished`, `ReviewReceived`
+
+### 11.4 Store tools
+
+| Tool | Does | R/W | Approval | Customer |
+|------|------|:---:|----------|:--------:|
+| `store.get_site` | Pages, sections, theme, what is published | R | | |
+| `store.update_page` | Edit a page or section | W | public | |
+| `store.set_banner` | Announcement banner ("closed Friday until 2") | W | public | |
+| `store.set_menu_display` | Which items and sections show | W | | |
+| `store.update_theme` T2 | Look of the site, from the brand kit | W | public | |
+| `store.get_search_presence` T2 | Score and issues | R | | |
+| `store.update_descriptions` T2 | Descriptions and structured data | W | public | |
+| `store.sync_listing` T2 | Push hours, menu and photos to the Google profile | W | public | |
+| `store.list_reviews` T2 | New and unanswered reviews | R | | |
+| `store.reply_review` T2 | Answer a review | W | public | |
 
 ---
 
-## 10. Reports
+## 12. Studio
 
-- Event listeners keep summary tables (sales by hour, item, staff, channel)
+The business's look and its content (term 2, the brand kit starts in term 1 if
+time allows).
+
+### 12.1 What it owns
+
+```
+brand_kit        business_id, colours(jsonb), fonts(jsonb), logo_url, voice(jsonb)
+design_template  id, kind(post|story|menu|flyer|purchase_order), layout(jsonb),
+                 season, version                         (shared, versioned)
+design           id, business_id, template_id, data(jsonb), image_url, created_by_type
+post             id, business_id, design_id, caption_ar, caption_en, channels,
+                 status(draft|approved|scheduled|published), scheduled_at,
+                 published_at, results(jsonb)
+```
+
+Images are made in two steps:
+
+1. **Templates first:** the brand kit, the shop's own photos and design
+   templates. Reliable, cheap, and Arabic text is placed correctly
+2. **An open image model second** (outside tool through the Studio adapter):
+   backgrounds and product shots. The text is still placed by the template
+
+**Emits:** `PostScheduled`
+
+### 12.2 Studio tools
+
+| Tool | Does | R/W | Approval | Customer |
+|------|------|:---:|----------|:--------:|
+| `studio.get_brand_kit` | Colours, fonts, logo, voice | R | | |
+| `studio.update_brand_kit` | Change the brand kit | W | always | |
+| `studio.list_templates` | Templates by kind and season | R | | |
+| `studio.render_design` | Template + data -> image or PDF preview | W | | |
+| `studio.generate_image` | Background or product shot from the open image model | W | | |
+| `studio.save_design` | Keep a design | W | | |
+| `studio.list_designs` | Saved designs | R | | |
+| `studio.create_post` | Draft: design + captions in Arabic and English | W | | |
+| `studio.schedule_post` | Time and channels | W | public | |
+| `studio.list_posts` | Drafts, scheduled, published, with results | R | | |
+
+---
+
+## 13. Marketing
+
+Offers and campaigns, measured in pounds (term 2).
+
+### 13.1 What it owns
+
+```
+offer            id, business_id, name, rules(jsonb), starts_at, ends_at, status
+campaign         id, business_id, name, segment_id, offer_id, message, channels,
+                 status(draft|approved|sending|done), scheduled_at
+campaign_send    id, campaign_id, customer_id, channel, status, sent_at
+```
+
+Consent is checked before every send. Results come from orders that used the
+offer, so every campaign reports money earned.
+
+**Emits:** `OfferStarted`, `CampaignSent`
+
+### 13.2 Marketing tools
+
+| Tool | Does | R/W | Approval | Customer |
+|------|------|:---:|----------|:--------:|
+| `marketing.list_offers` | Current and past offers | R | | current only |
+| `marketing.create_offer` | Discount or bundle with dates and hours | W | discount above the limit | |
+| `marketing.end_offer` | End early | W | | |
+| `marketing.create_campaign` | Draft: segment, offer, message, channels | W | | |
+| `marketing.send_campaign` | Send to the segment, consent checked | W | always | |
+| `marketing.get_campaign_results` | Reach, orders, money earned | R | | |
+
+---
+
+## 14. Team
+
+Helping the owner manage the staff (term 2; the team decides if any of it moves
+to term 1).
+
+### 14.1 What it owns
+
+```
+staff_profile    membership_id, business_id, phone, hourly_rate_cents, skills,
+                 availability(jsonb)
+rota_shift       id, business_id, location_id, membership_id, starts_at, ends_at,
+                 role, status(planned|swapped|done|missed)
+attendance       id, business_id, membership_id, clock_in_at, clock_out_at, source
+task             id, business_id, assigned_to, title, due_at, status, created_by_type
+```
+
+**Emits:** `ShiftMissed`, `TaskOverdue`
+
+### 14.2 Team tools
+
+| Tool | Does | R/W | Approval | Customer |
+|------|------|:---:|----------|:--------:|
+| `team.list_staff` | Staff, roles, availability | R | | |
+| `team.get_rota` | Who works when | R | | |
+| `team.set_rota` | Plan shifts for the week | W | | |
+| `team.swap_shift` | Swap between two staff | W | | |
+| `team.record_attendance` | Clock in or out | W | | |
+| `team.list_attendance` | Late, missed, hours worked | R | | |
+| `team.create_task` | Task for a staff member | W | | |
+| `team.list_tasks` | Open and overdue tasks | R | | |
+| `team.complete_task` | Mark done | W | | |
+| `team.get_staff_performance` | Sales, waste, cash gaps per staff member | R | | |
+
+---
+
+## 15. Reports
+
+- Event listeners keep summary tables (sales by day, hour, item, staff, channel)
 - The numbers on Home come from the template
-- Feeds the dashboard, the morning briefing and the AI's `get_sales`
+- Feeds the app, the morning briefing and the AI
 - Read only
 
+### 15.1 Reports tools
+
+| Tool | Does | R/W |
+|------|------|:---:|
+| `reports.get_sales` | Totals by period, grouped by item, hour, staff, channel | R |
+| `reports.get_profit` | Sales minus recipe cost minus expenses | R |
+| `reports.get_trends` | This period against the last one | R |
+| `reports.get_home_numbers` | The key numbers on Home | R |
+| `reports.get_value_report` | Money saved and earned this month, in pounds | R |
+
 ---
 
-## 11. Frontend
+## 16. Skills catalog
 
-| Area | Screens |
-|------|---------|
-| Home | To-do list from the AI, key numbers |
-| Sales | Counter sales screen (fast, big buttons, works on a tablet or phone), open orders, shift open and close |
-| Menu and stock | Items, recipes, ingredients, stock, waste, suppliers, purchases |
-| Customers | List, customer page with history and loyalty, bookings |
-| Inbox | All conversations, who is handling them (AI or staff), take over |
-| AI partner | A chat panel on every page; answers as the app's own cards |
-| Approvals | What the AI is waiting for the owner to approve |
-| Settings | Business, members and roles, channels, AI rules, store website |
-| Store website | Menu, ordering, chat window |
+The core and template skills, A to Z. Each lists the tools it uses; the AI
+loads only those.
 
+| Skill | What it does | Main tools | Term |
+|-------|--------------|------------|:----:|
+| `add_item_by_talking` | "Add iced latte, 75 pounds, same recipe as latte plus ice" | `erp.create_item`, `erp.set_recipe`, `erp.get_item_cost` | 1 |
+| `answer_customer` | Menu, prices, hours, location, delivery areas | `core.get_business`, `erp.search_items`, `ai.search_knowledge` | 1 |
+| `book_table` | A booking request from chat | `crm.check_availability`, `crm.create_booking` | 1 basic |
+| `cash_gap_alert` | On `CashGapFound`: the shift, the gap, what changed | `erp.list_shifts`, `erp.list_payments`, `reports.get_sales` | 1 |
+| `cost_change_alert` | On `CostChanged`: new cost per item and a price suggestion | `erp.get_item_cost`, `erp.suggest_price` | 1 |
+| `create_post_image` | One post image from the brand kit and an item | `erp.get_item`, `studio.get_brand_kit`, `studio.render_design` | 2 |
+| `debt_reminders` | Polite reminders for debts due (small market) | `erp.list_debts`, `channels.send_message` | 1 basic |
+| `end_of_day` | Sales, waste, gaps, tomorrow's tasks | `reports.get_sales`, `erp.get_stock_levels`, `team.list_tasks` | 1 |
+| `expiry_discount` | Items expiring soon get a suggested discount (small market) | `erp.get_stock_levels`, `marketing.create_offer` | 2 |
+| `handle_complaint` | Open a case, check the order, resolve within rules or hand off, follow up | `crm.open_case`, `erp.get_order`, `crm.resolve_case`, `channels.handoff_to_staff` | 1 |
+| `launch_new_item` | Item, cost, price, post, website | `erp.create_item`, `erp.get_item_cost`, `create_post_image`, `store.set_menu_display` | 2 |
+| `log_waste_by_talking` | "2 litres of milk spoiled" | `erp.log_waste` | 1 |
+| `menu_from_photo` | A menu photo becomes items and prices | image reading (AI layer), `erp.create_item` | 2 |
+| `monthly_value_report` | Money saved and earned this month | `reports.get_value_report` | 2 |
+| `morning_briefing` | What needs attention today, with draft actions | `erp.forecast_stock`, `erp.list_shifts`, `channels.list_conversations`, `crm.list_cases` | 1 |
+| `order_request` | With `orders` off: write the order out, hand it to staff, note it on the customer | `erp.search_items`, `channels.handoff_to_staff`, `crm.add_note` | 1 |
+| `new_regular` | A new regular gets a welcome and a loyalty nudge | `crm.get_customer`, `crm.add_points`, `channels.send_message` | 1 |
+| `prepare_tomorrow` | Stock check, purchase drafts, staff tasks | `erp.forecast_stock`, `erp.draft_purchase_order`, `team.create_task` | 1 |
+| `price_review` | Items losing margin, with suggested prices | `erp.get_item_cost`, `erp.suggest_price`, `erp.change_price` | 1 |
+| `receive_delivery` | An invoice photo or "the milk came" updates stock and cost | `erp.receive_purchase` | 1 |
+| `reorder_low_stock` | On `StockLow`: draft a purchase order for approval | `erp.get_stock_levels`, `erp.compare_supplier_prices`, `erp.draft_purchase_order` | 1 |
+| `reply_to_reviews` | New reviews answered in the business's voice | `store.list_reviews`, `store.reply_review` | 2 |
+| `rota_planning` | Next week's rota from availability and busy hours | `team.list_staff`, `reports.get_sales`, `team.set_rota` | 2 |
+| `search_presence_check` | Weekly score, fixes suggested | `store.get_search_presence`, `store.update_descriptions` | 2 |
+| `slow_hour_offer` | An offer for the quietest hours, with a post and a campaign | `reports.get_sales`, `erp.get_item_cost`, `marketing.create_offer`, `create_post_image` | 2 |
+| `staff_how_to` | Staff ask how to make an item or do a task | `erp.get_recipe`, `ai.search_knowledge` | 1 |
+| `take_order` | A customer orders by chat: confirm, create, tell the ready time | `erp.search_items`, `erp.create_order`, `crm.get_customer` | 1 |
+| `website_update` | "Closed Friday until 2" on the site and the channels | `store.set_banner`, `channels.set_auto_reply` | 1 |
+| `weekly_post_suggestions` | 3 post ideas with reasons, images and times | `reports.get_sales`, `erp.get_stock_levels`, `studio.list_posts`, `create_post_image` | 2 |
+| `win_back` | A regular went quiet: a draft message, sent after approval | `crm.list_customers`, `marketing.create_campaign` | 2 |
+
+Templates add their own; owners add and edit theirs (section 5). A skill is
+offered only when the packs it needs are on.
+
+---
+
+## 17. The app: chat-first
+
+### 17.1 The layout
+
+```
++-------------------+---------------------------------------------------+
+| Café Nile    [v]  |                                                   |
+| + New request     |   Good morning, Ahmed. 3 things need you today:   |
+|                   |   [card] Milk runs out tomorrow  [Approve PO]     |
+| Home (to-do)      |   [card] Cash 50 EGP short, evening shift         |
+| Sales screen      |   [card] 2 chats waiting for staff                |
+| Orders        4   |                                                   |
+| Menu & stock      |   +-------------------------------------------+   |
+| Customers         |   | Ask or tell me anything...                |   |
+| Inbox         2   |   | [+]                    [Ask first v] [mic]|   |
+| Approvals     1   |   +-------------------------------------------+   |
+| Recent threads    |                                                   |
+| Pinned            |   Opened cards and pages show in a side panel:    |
+| Settings          |   the orders board, a recipe, a purchase order.   |
+| Ahmed - Owner     |                                                   |
++-------------------+---------------------------------------------------+
+```
+
+- The sidebar lists the parts of the business, filtered by role and by the
+  packs that are on, plus recent threads and pinned items
+- The **+** menu: upload a menu photo or an invoice, quick actions (skills),
+  channels
+- **Ask first / Act alone** sits where a model picker would be. Routing between
+  the model tiers is automatic
+- Answers stream: text first, cards when tools return
+- The AI answers only with the app's own cards (order, item, stock, customer,
+  cash, sales, approval, plan, post); an unknown card shows its plain text
 - Arabic right-to-left and mobile from day one
-- The AI answers with the same card components the pages use
-- The sales screen must stay fast at rush hour
+
+### 17.2 Windows: 15
+
+| # | Window | Who | What is in it | Term |
+|:-:|--------|-----|---------------|:----:|
+| 1 | Sign up and setup | New owner | Account, business type, name, language; a menu photo becomes items | 1 |
+| 2 | **Home: AI chat** | Everyone in the business | Briefing cards, the chat, threads, side panel | 1 |
+| 3 | Sales screen | Cashier, barista | Big buttons, cart, payment, shift open and close with the cash count | 1 |
+| 4 | Orders | Staff | Board of open orders by stage | 1 |
+| 5 | Menu and stock | Manager, owner | Items, recipes, ingredients, stock and waste, suppliers and purchases | 1 |
+| 6 | Customers | Manager, owner | List, customer page, support cases, bookings | 1 |
+| 7 | Inbox | Staff | Customer chats: AI or staff, take over, hand back | 1 |
+| 8 | Approvals | Owner, manager | Plans and actions waiting; also cards on Home | 1 |
+| 9 | Settings | Owner | Business, members and roles, the library of packs, channels, AI rules, knowledge, skills | 1 |
+| 10 | Team | Owner, manager, staff (own shifts) | Rota, attendance, tasks | 2 |
+| 11 | Marketing | Owner | Offers, campaigns, post calendar, designs | 2 |
+| 12 | Website and search | Owner | Pages, banner, look, search presence, reviews | 1 basic, 2 full |
+| 13 | Shop page | Customer | The menu and the chat on one page | 1 |
+| 14 | Order status | Customer | Stage and ready time, from a link | 1 |
+| 15 | Landing page | Shop owners | What it is, the waiting list sign-up | 1 |
+
+What each role sees (draft; Security decides):
+
+| Window | Owner | Manager | Staff | Viewer |
+|--------|:-----:|:-------:|:-----:|:------:|
+| Home: AI chat | all tools | most tools | sales, stock and how-to only | read-only answers |
+| Sales screen, Orders | yes | yes | yes | view |
+| Menu and stock | yes | yes | stock and waste only | view |
+| Customers, Inbox | yes | yes | Inbox only | view |
+| Approvals | yes | below the owner's limit | no | no |
+| Team | yes | yes | own shifts and tasks | no |
+| Marketing, Website and search | yes | if allowed | no | view |
+| Settings | yes | no | no | no |
 
 ---
 
-## 12. Security
+## 18. How customers and staff use it
+
+### 18.1 A customer orders on chat
+
+```mermaid
+sequenceDiagram
+  actor C as Customer
+  participant CH as Telegram or shop chat
+  participant BE as Backend
+  participant AG as AI, small model
+  actor ST as Barista
+  C->>CH: 2 lattes and a croissant, takeaway
+  CH->>BE: webhook
+  BE->>BE: find customer by phone, save message
+  BE->>AG: MessageReceived
+  AG->>BE: erp.search_items(latte, croissant)
+  BE-->>AG: items, prices, available
+  AG-->>C: card: the order, total, ready time, Confirm
+  C->>CH: Confirm
+  AG->>BE: erp.create_order(lines, pickup)
+  BE->>BE: order #1042, stock reserved, OrderCreated
+  BE-->>ST: appears on the Orders board
+  ST->>BE: mark ready
+  BE-->>C: your order #1042 is ready
+```
+
+### 18.2 A customer complains
+
+```mermaid
+sequenceDiagram
+  actor C as Customer
+  participant AG as AI, small model
+  participant BE as Backend
+  actor O as Owner
+  C->>AG: My latte was cold and late
+  AG->>BE: crm.open_case(order #1042)
+  AG->>BE: erp.get_order(#1042), crm.get_customer
+  BE-->>AG: regular, 20 orders, first complaint
+  AG->>BE: crm.issue_voucher(within the owner's limit)
+  AG-->>C: apology + voucher for the next drink
+  AG->>BE: crm.create_follow_up(tomorrow)
+  Note over AG,O: Above the limit or still unhappy: channels.handoff_to_staff, the owner sees it in Inbox
+```
+
+### 18.3 The owner's morning
+
+```mermaid
+sequenceDiagram
+  actor O as Owner
+  participant APP as App
+  participant BE as Backend
+  participant AG as AI, big model
+  Note over BE,AG: Scheduler starts morning_briefing
+  AG->>BE: erp.forecast_stock, erp.list_shifts, crm.list_cases
+  AG-->>APP: Home cards: milk runs out tomorrow (Approve), cash short yesterday
+  O->>APP: Approve
+  APP->>AG: plan approved
+  AG->>BE: erp.send_purchase_order
+  O->>APP: How much did I sell today, and what does a latte cost me?
+  AG->>BE: reports.get_sales(today), erp.get_item_cost(latte)
+  AG-->>APP: streamed answer with a sales card and a cost card
+```
+
+### 18.4 A multi-step task: an offer for slow hours
+
+```mermaid
+flowchart TD
+  A["reports.get_sales: by hour, last 4 weeks"] --> B["Slow: Tuesday 3 to 5 pm"]
+  C["erp.get_item_cost: margins"] --> D["Room on latte and croissant"]
+  B & D --> E["marketing.create_offer: 20% Tue 3-5"]
+  E --> F["create_post_image skill"]
+  F --> G["studio.schedule_post: Monday 6 pm"]
+  E --> H["crm.create_segment: came on Tuesdays"]
+  G & H --> P{"One plan card: Approve all"}
+  P -->|approved| R["Publish, send the campaign, task for the barista"]
+  R --> W["Wednesday: results in pounds"]
+```
+
+### 18.5 The cashier
+
+The cashier does not go through the AI. They tap items on the sales screen; the
+sales screen calls `erp.record_counter_sale`; stock is deducted and
+`OrderCompleted` updates reports and the customer's points.
+
+---
+
+## 19. Security
 
 - Login with strong passwords, sessions, and lock-out after repeated failures
-- Roles from data, not code; every screen and every AI tool checks them
-- Row-level security on every business table, plus tests that try to cross businesses
+- Roles from data, not code; every tool checks them, for the app and the AI alike
+- Row-level security on every business table, plus tests that try to cross
+  businesses
+- Each module's database user sees only its own schema; the AI layer sees none
+  of the business schemas
 - Audit log on every change, by people and by the AI
 - AI safety: tests against prompt injection from customer messages; the AI can
-  never do what the user or customer is not allowed to do
+  never do what the person it serves is not allowed to do; skills cannot change
+  permissions or approvals
 - Public website and chat: limits against spam and fake orders
+- Outside API keys (term 2) scoped per business and per tool area
 - No secrets in the repository
 
 ---
 
-## 13. Stack
+## 20. Where it runs
+
+```mermaid
+flowchart LR
+  CU["Customers"] --> SHOP["domain/shop-name"]
+  SF["Staff"] --> APPD["app.domain"]
+  EXT["Telegram, Meta, Google"] --> HOOK["api.domain/webhooks"]
+  subgraph SRV["Our server"]
+    WEB["web: app, shop pages, landing"]
+    API["backend: tools, events, scheduler"]
+    AGT["AI layer"]
+    PG[("PostgreSQL")]
+  end
+  subgraph GPU["Rented GPU"]
+    M1["small model"]
+    M2["big model"]
+    M3["image model, term 2"]
+  end
+  SHOP & APPD --> WEB
+  WEB --> API
+  HOOK --> API
+  API --> PG
+  API <--> AGT
+  AGT --> M1 & M2
+  API --> M3
+```
+
+| Part | Where |
+|------|-------|
+| Staff app | `app.<domain>`, installable on phone and tablet; a mobile app for notifications in term 2 |
+| Shop pages | `<domain>/<shop>`, or the shop's own domain in term 2 |
+| Backend, AI layer, database | Our server (to be arranged) |
+| Models | Rented GPUs, turned off when not needed |
+
+---
+
+## 21. Code structure: repos and folders
+
+How the code is laid out. Each folder matches a part of this document.
+
+### 21.1 The repos
+
+| Repo | Holds | Who |
+|------|-------|-----|
+| `app` | Contracts, backend and web, in one repo | Backend, Frontend |
+| `app-ai-agent` | The AI layer: faces, jobs, planner, skills | AI agent |
+| `app-ai-model` | Training, test set, results, serving | AI data |
+
+Contracts, backend and web share one repo: a shared value changes in one commit,
+with no release step. The two AI repos are separate because they have their own
+tools, GPUs and pace; they read the contracts from `app`.
+
+### 21.2 `app`
+
+```
+app/
+├── README                              what it is, how to run everything
+├── rules/                              one page each: modules, data, tools, events, web, contracts
+├── contracts/                          written once, used by backend, web and the AI repos
+│   ├── tools/                          one folder per module, one reference page per tool (4.4)
+│   │   ├── core/  erp/  crm/  channels/  store/
+│   │   ├── studio/  marketing/  team/  reports/  ai/
+│   │   └── (each page: purpose, inputs, output, errors, effects, rules, examples, version)
+│   ├── packs/                          one file per pack (7.3): module, needs, tools, windows,
+│   │                                   skills, listeners, settings, setup skill
+│   ├── cards/                          order, item, stock, customer, cash, sales, approval, plan, post
+│   ├── events/                         one file per event: the envelope (2.6) and its data
+│   ├── values/                         ID types, order statuses, roles and permissions, channels,
+│   │                                   payment methods, AI permission settings
+│   ├── errors/                         error codes
+│   ├── limits/                         password, code expiry, lock-out, upload size
+│   ├── training/                       training example format: request, skill, tool calls with
+│   │                                   inputs, tool results, final answer (shared by agent and model)
+│   └── changes/                        every change to a tool, event or card, announced before merging
+├── backend/
+│   ├── config/                         settings read once at start; example settings file
+│   ├── templates/                      coffee-shop, small-market: packs on, fields, stages,
+│   │                                   home items, AI defaults, template skills
+│   ├── database/
+│   │   ├── migrations/                 one set per schema: core, erp, crm, channels, store,
+│   │   │                               studio, marketing, team, reports, ai
+│   │   └── seeds/                      invented demo coffee shop and small market
+│   ├── platform/
+│   │   ├── tenancy                     every call inside one business (row-level security)
+│   │   ├── auth                        sign up, log in, sessions, lock-out
+│   │   ├── permissions                 one check for every tool, for the app and the AI alike
+│   │   ├── packs                       essentials and packs on for this business; needs, on, off
+│   │   ├── tool-registry               loads the tool pages; filters by pack, role, face
+│   │   ├── context                     business, actor, correlation ID, retry key on every call (2.6)
+│   │   ├── audit                       audit row on every write
+│   │   ├── events                      outbox, dispatcher, retries, listener registry
+│   │   ├── scheduler                   time-based events: expiring stock, quiet regulars,
+│   │   │                               morning briefing, scheduled posts
+│   │   ├── idempotency                 retried calls write once
+│   │   ├── undo                        runs a tool's undo from the audit log
+│   │   ├── dry-run                     runs tools with no real writes, for skill test runs
+│   │   ├── numbering                   #1042 per business
+│   │   ├── money                       whole piastres plus currency
+│   │   ├── errors                      error codes, never message text
+│   │   ├── streaming                   relays the AI's streamed answer to the app
+│   │   └── realtime                    live updates: orders board, inbox, stock
+│   ├── api/                            one tool API, four doors (section 3)
+│   │   ├── app/                        logged-in members (session); relays owner chat to the AI
+│   │   ├── ai/                         the AI layer (service token plus who it acts for)
+│   │   ├── public/                     shop pages, chat widget, channel webhooks; rate limits
+│   │   └── outside/                    outside websites with API keys (term 2)
+│   ├── modules/
+│   │   ├── core/                       businesses, members, roles, locations, templates, packs,
+│   │   │                               notifications
+│   │   ├── erp/
+│   │   │   ├── catalog/                items, variants, modifiers, categories (essentials)
+│   │   │   ├── orders/                 orders, lines with snapshots, the order stages
+│   │   │   ├── payments/               payments, refunds
+│   │   │   ├── sales-screen/           counter sales
+│   │   │   ├── shifts/                 shifts, cash movements, cash gap
+│   │   │   ├── stock/                  movement ledger, levels cache, waste, forecast, rebuild
+│   │   │   ├── recipes/                ingredients, recipe lines, cost per item
+│   │   │   ├── purchasing/             suppliers, purchase orders, receiving
+│   │   │   ├── credit/                 customer debts
+│   │   │   ├── expenses/
+│   │   │   └── adapters/               payments, couriers (term 2)
+│   │   ├── crm/
+│   │   │   ├── customers/              customers, stats cache, usual order, merge and forget
+│   │   │   ├── identities/             resolve identity, phone to +20, merge suggestions
+│   │   │   ├── timeline/               activity from other modules' events
+│   │   │   ├── loyalty/
+│   │   │   ├── support/                cases, case events, vouchers, follow-ups
+│   │   │   ├── bookings/
+│   │   │   ├── engagement/             notes, tags
+│   │   │   └── segments/               segments and consent (term 2)
+│   │   ├── channels/
+│   │   │   ├── inbox/                  incoming queue, duplicates dropped
+│   │   │   ├── conversations/          AI or staff, take over, hand back, tags
+│   │   │   ├── messages/               one message shape
+│   │   │   ├── auto-replies/           away, opening hours, greeting
+│   │   │   └── adapters/               website chat, Telegram; WhatsApp, Instagram, Facebook later
+│   │   ├── store/
+│   │   │   ├── site/                   shop page, pages, banner, menu display, public ordering
+│   │   │   ├── search-presence/        descriptions, structured data, score (term 2)
+│   │   │   └── adapters/               Google business profile and reviews (term 2)
+│   │   ├── studio/                     brand kit, design templates, render, designs, posts
+│   │   │   └── adapters/               image model (term 2)
+│   │   ├── marketing/                  offers, campaigns, sends (term 2)
+│   │   ├── team/                       staff profiles, rota, attendance, tasks (term 2)
+│   │   └── reports/                    summary tables from events
+│   │   (each module folder: tools as its only public face, service, data, listeners, tests)
+│   ├── fake/                           answers every tool from its page's examples and the
+│   │                                   demo businesses, for the frontend and the AI team (6.10)
+│   └── tests/
+│       ├── isolation                   business A reads business B: must fail
+│       ├── schema-users                each module's database user sees only its schema
+│       ├── roles                       each role against each tool
+│       ├── tools                       each tool: allowed, refused by role, by pack, by face
+│       ├── pages                       each tool behaves exactly as its reference page says
+│       ├── packs                       essentials alone, each template, each pack with its needs
+│       ├── undo                        every write tool's undo puts things back
+│       ├── order-flow                  every allowed and refused order move
+│       ├── processes                   each cross-module process (2.7) end to end
+│       └── rebuild                     stock levels and customer stats rebuilt from history
+└── web/
+    ├── shared/
+    │   ├── cards/                      one component per card: used in pages and in AI answers
+    │   ├── chat/                       message list, streaming, input box, + menu, threads,
+    │   │                               plan and approval cards
+    │   ├── layout/                     sidebar (by role and packs), side panel for opened cards
+    │   ├── tools-client/               calls the same tools the AI uses
+    │   ├── i18n/                       Arabic and English (Arabic first, right to left)
+    │   └── tokens/                     colours, spacing, fonts
+    ├── staff/                          windows 1 to 12 (section 17.2)
+    │   ├── setup/  home/  sales/  orders/  menu-stock/  customers/
+    │   ├── inbox/  approvals/  settings/                       (term 1)
+    │   └── team/  marketing/  website-search/                  (term 2)
+    ├── shop/                           windows 13 and 14: shop page with chat, order status
+    └── landing/                        window 15
+```
+
+### 21.3 `app-ai-agent`
+
+Folders only. The AI team fills them.
+
+```
+app-ai-agent/
+├── faces/                              customer agent, owner partner
+├── jobs/                               scheduled and event-driven work
+├── planner/                            plans, approval per plan, running, checking, undo
+├── skills/                             core skills
+├── tools/                              tool loading, find_tools
+├── model/                              talking to the models
+├── policy/                             permission settings (6.6), hand-off triggers, injection checks
+├── brain/                              profile, knowledge, memory, threads
+├── approvals/
+├── log/                                AI action log, masking
+└── tests/
+    ├── fakes/                          fake model and fake tools built from the tool pages' examples
+    ├── conversations/                  scripted conversations with the expected tool calls
+    └── injection/                      prompt-injection cases
+```
+
+### 21.4 `app-ai-model`
+
+Folders only. The AI team fills them.
+
+```
+app-ai-model/
+├── configs/  testset/  devset/  data/
+├── prepare/  train/  evaluate/  serve/
+└── runs/  results/
+```
+
+---
+
+## 22. Stack
 
 Not decided. Each subteam picks its tools and can change them as long as the
 contracts between parts hold. Things that affect the choice:
 
-- The AI side will train and serve an open model, which usually means Python
-  for training and a model server for running it
-- Row-level security and transactions point to PostgreSQL, but this is open
-- The sales screen must work on tablets and phones
+- The AI side trains and serves open models, which usually means Python for
+  training and a model server with the chat-completions-with-tools API
+- The planner and the jobs need durable workflows that survive restarts; the AI
+  team proposed Temporal
+- Row-level security, schemas per module and transactions point to PostgreSQL
+- The contracts (tools, events, cards, the training example format) should use a
+  standard format both TypeScript and Python can read
+- The sales screen must work on tablets and phones; answers must stream
 
 ---
 
-## 14. What comes in which term
+## 23. What comes in which term
 
 Nothing is dropped. Everything is ordered.
 
-| Term 1 (first presentation) | Term 2 (full product) |
-|-----------------------------|-----------------------|
-| Core: businesses, members, roles, audit, templates (coffee shop, small market) | More templates and custom fields |
-| ERP: menu, recipes, stock, waste, sales screen, orders, shifts and cash, suppliers and purchase drafts, cost per item | Offline sales, credit accounts in full, expiry tracking in full, multiple branches, e-invoicing |
-| CRM: customers, identities, timeline, usual order, loyalty, notes | Segments, consent, merging, bookings in full |
-| Channels: website chat and Telegram; WhatsApp if approved | WhatsApp in full, Instagram, voice notes, images |
-| Store website: menu, ordering, chat | Studio design for the website, GEO |
-| AI: customer agent, owner partner, morning briefing, alerts, approvals | All proactive jobs, monthly value report, win-back sends |
-| Our tuned model powering the AI, test set, adaptation test | Speech and image models, larger training data, more categories |
-| Home dashboard | Studio, marketing, founder tools, mobile app for notifications and quick management, API for existing websites, payment and courier integrations |
+| Area | Term 1 (first presentation) | Term 2 (full product) |
+|------|-----------------------------|-----------------------|
+| AI | Customer agent, owner partner, morning briefing, alerts, approvals, planner, core skills, owner skill edits (basic) | All jobs, monthly value report, AI-suggested skills, voice and images |
+| Models | Both tiers tuned, test set, tuned vs untuned, adaptation test | Larger training data, more categories, image model |
+| Core | Businesses, members, roles, audit, templates (coffee shop, small market), essentials and the library of packs | More templates, outside API keys |
+| ERP | Menu, recipes, stock, waste, sales screen, orders, shifts and cash, suppliers and purchases, cost per item, credit basic | Offline sales, credit in full, expiry in full, branches and transfers, payments and couriers, e-invoicing |
+| CRM | Customers, identities, timeline, usual order, loyalty, notes, support cases, bookings basic | Segments, consent, merging, bookings in full |
+| Channels | Website chat, Telegram; WhatsApp if approved | WhatsApp in full, Instagram, Facebook, posting |
+| Store website | Menu, ordering by chat, order status, banner | Theme from Studio, search presence (SEO and GEO), reviews |
+| Studio | Brand kit if time allows | Templates, designs, image model, posts |
+| Marketing | | Offers, campaigns, win-back |
+| Team | | Rota, attendance, tasks, staff performance |
+| Reports | Home numbers, sales, profit | Trends, monthly value report |
+| App | Windows 1 to 9 and 13 to 15, chat-first | Windows 10 to 12, mobile app, founder tools |
+
+Moving anything new into term 1 (support cases, the planner, skill edits) is
+the team's decision; the term 1 plan changes with it.
 
 ---
 
-## 15. Research questions
+## 24. Research questions
 
-1. Can one open model, fine-tuned on Egyptian Arabic small-business work, manage
-   a business's customer chats and daily operations through tools, at a level
-   owners accept?
-2. Does the same model adapt to a new business category with configuration and
-   little extra data?
+1. Can open models, fine-tuned on Egyptian Arabic small-business work, run a
+   business's customer chats and daily operations through tools and skills, at a
+   level owners accept?
+2. Does the same model adapt to a new business category with a template, skills
+   and little extra data?
+3. Does splitting the work into tools and skills let the model handle new tasks
+   without retraining?
 
 **Measured:**
 
@@ -644,22 +1955,43 @@ Nothing is dropped. Everything is ordered.
 |---------|-----|
 | Chats handled with no human | Share of conversations in the pilot |
 | Right action | Correct tool and inputs on the test set |
+| Skill runs | Share of skill runs finished correctly on the test set |
 | Orders captured from chat | Share of chat orders created correctly |
-| Reply time | Seconds |
+| Reply time | Seconds, median and 90th percentile, per tier |
 | Owner time and money saved | Pilot, compared with a baseline week before the AI is on |
-| Tuned versus untuned | Same test set, our tuned model against the untuned base model |
+| Tuned versus untuned | Same test set, tuned against the untuned base model, per tier |
 | Adaptation | Score on a category barely seen in training |
+| New skills | Score on skills written after training |
 
 ---
 
-## 16. Risks
+## 25. Risks
 
 | Risk | What we do |
 |------|-----------|
-| Our tuned model is not reliable enough in time | Start data and tuning in week 4; narrow tools; hand off when unsure; measure weekly |
-| Meta approval for WhatsApp is slow | Website chat and Telegram first; request approval in week 4 |
+| Our tuned models are not reliable enough in time | Start data and tuning early; small tool sets per task; skills with exact steps; hand off when unsure; measure weekly |
+| The big model costs too much GPU | The AI team confirms its size early; rent by the hour; fall back to a smaller big model |
+| Modules drift apart (two records for one customer, shapes that differ) | One owner and one ID per thing (2.4); identity resolution only in CRM (2.5); shared shapes in the contracts; end-to-end tests of every cross-module process |
+| The tool list grows messy | One naming rule, one owner per tool, the contracts as the only list; new abilities as skills first |
+| An owner's skill edit breaks something | Preview and test run before saving; every version kept; skills cannot change permissions or approvals |
+| Meta approval for WhatsApp is slow | Website chat and Telegram first; request approval early |
 | Wrong price or order from the AI | Prices and stock only from tools; confirmation with the customer; hand off below a confidence level |
+| Public posts or replies go wrong | Approval for anything public until the owner switches it to act alone |
 | Scope creep | Work goes by term; one person has the final say on scope |
-| Data leaks between businesses | Row-level security and tests that try to cross businesses |
+| Data leaks between businesses | Row-level security, schema users and tests that try to cross businesses |
 | Shops do not adopt it | Built from shop visits; fast sales screen; visible monthly value |
-| GPU cost | Small models, rented by the hour, budget planned in week 5 |
+
+---
+
+## 26. Open questions
+
+Decisions still open before the structure is final:
+
+1. **Who checks an approval:** can the backend trust an approval ID from the AI
+   layer, or must it check the approval itself?
+2. **Login:** sessions with lock-out, as written here, or tokens? Security decides
+3. **The models:** which base models, which sizes, one or two tiers, and the GPU
+   cost. The AI team decides
+4. **Packs and plans:** whether some packs become paid plans
+5. **Images:** whether an open image model is good enough for posts, or the
+   team changes the rule on commercial models for images only (4.5)
