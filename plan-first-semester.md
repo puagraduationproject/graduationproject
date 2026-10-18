@@ -187,8 +187,8 @@ before it is built.
 
 | Subteam | People | Owns | Works in |
 |---------|:------:|------|----------|
-| Backend | 2 CS | The Core, ERP, CRM, Channels, Store and Reports modules; the platform (tenancy, permissions, packs, tool registry, events, scheduler, undo, dry run); the four doors; the tool reference pages; the fake backend; the online version | `app/contracts`, `app/backend` |
-| Frontend | 2 CS | The chat-first app (windows 1 to 9), the shop page and order status (13, 14), the landing page (15), the shared cards | `app/web` |
+| Backend | 2 CS | The Core, ERP, CRM, Channels, Store and Reports modules; the platform (tenancy, permissions, packs, tool registry, events, scheduler, undo, dry run); the four doors; the tool reference pages; the fake backend; the online version | `app-backend` |
+| Frontend | 2 CS | The chat-first app (windows 1 to 9), the shop page and order status (13, 14), the landing page (15), the shared cards | `app-web` |
 | AI agent | 2 AI | The AI layer: both faces, jobs, the planner, approvals, permission settings, the business brain, core and template skills, tool loading and `ai.find_tools` | `app-ai-agent` |
 | AI data | 2 AI | The models: base model choice per tier, training data, fine-tuning, serving, the test set, results | `app-ai-model` |
 | Market | 1 AI (lead) + everyone | Interviews, sign-ups, pilot shops, real messages for training (with consent) | |
@@ -225,7 +225,7 @@ flowchart LR
 
 | # | Rule | What it means |
 |:-:|------|---------------|
-| 1 | Contract first | Before a tool is built, its reference page is written in `app/contracts` (purpose, inputs, output, errors, effects, rules, examples, version). The same goes for events, cards and packs. Everyone builds against the page (4.4) |
+| 1 | Contract first | Before a tool is built, its reference page is written in `app-backend/contracts` (purpose, inputs, output, errors, effects, rules, examples, version). The same goes for events, cards and packs. Everyone builds against the page (4.4) |
 | 2 | Nobody waits | Frontend and the AI team build against the fake backend, which answers every tool from its page's examples and the demo businesses, then switch to the real tools when they are ready |
 | 3 | Integration day every week | On the last working day, the real parts are connected and the week's demo runs from start to end |
 | 4 | Definition of done | It works in the weekly demo, it matches its reference page (the pages test passes), and Security has reviewed it |

@@ -47,7 +47,8 @@ From section 0 of the technical structure:
 
 | Repo | Holds | Who |
 |------|-------|-----|
-| `app` | Contracts, backend and web, in one repo | Backend, Frontend |
+| [`app-backend`](https://github.com/puagraduationproject/app-backend) | Contracts, platform, modules, database, fake backend, tests | Backend |
+| [`app-web`](https://github.com/puagraduationproject/app-web) | Staff app, shop pages, landing page | Frontend |
 | `app-ai-agent` | The AI layer: faces, jobs, planner, skills | AI agent |
 | `app-ai-model` | Training, test set, results, serving | AI data |
 
