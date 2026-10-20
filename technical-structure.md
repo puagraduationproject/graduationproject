@@ -1048,7 +1048,7 @@ then the business):
 | Your name | What the AI and the team call you | Only asked when Google did not give it |
 | Business name | Shown everywhere: the AI, the shop page, order messages | "Nova Café" |
 | Business handle | Its unique name in addresses and usernames | Filled in from the name (`nova`), the owner can change it |
-| Business type | Picks the template, so the packs it turns on (7.2, 7.3) | General kinds: café or coffee shop, restaurant or food, bakery or sweets, grocery or small market, pharmacy, clothes and fashion, phones and electronics, salon or beauty, other services, online shop, something else. Today only the café and the small market have a template; the others start with the essentials until theirs is written |
+| Business type | Picks the template, so the packs it turns on (7.2, 7.3) | General kinds: café or coffee shop, restaurant or food, bakery or sweets, grocery or small market, pharmacy, clothes and fashion, phones and electronics, salon or beauty, other services, online shop, something else. **For now a type is only a name:** it links no template and turns nothing on; every business starts with the essentials until the team decides what each type means |
 | Just me or with a team | Decides only whether the next step offers inviting people, what Home shows, and what the AI suggests | One tap, default "just me". It never turns features on or off: features come from the type, and what each person may do comes from their role |
 
 **Filled in, changeable in Settings:** language (Arabic), currency (EGP), time
