@@ -1034,17 +1034,21 @@ A checked code gives a short ticket (10 minutes, one use) that the next step
 
 ### 7.7 Business setup and names
 
-Right after sign-up, one short screen. The business setup needs sessions
-(the backend must know who is creating the business), so sessions come first.
+Right after sign-up. It cannot be skipped: a person with no business always
+comes back to it (logging out is the only way out). The business setup needs
+sessions (the backend must know who is creating the business), so sessions
+come first. Today it is one form; the frontend turns it into one question per
+screen (`FE-003`).
 
-**Asked before the business can be used:**
+**Asked before the business can be used, in this order** (the person first,
+then the business):
 
 | Question | Why | Notes |
 |----------|-----|-------|
+| Your name | What the AI and the team call you | Only asked when Google did not give it |
 | Business name | Shown everywhere: the AI, the shop page, order messages | "Nova Café" |
 | Business handle | Its unique name in addresses and usernames | Filled in from the name (`nova`), the owner can change it |
-| Business type | Picks the template, so the packs it turns on (7.2, 7.3) | Coffee shop, small market, or something else (essentials only) |
-| Your name | What the AI and the team call you | Only asked when Google did not give it |
+| Business type | Picks the template, so the packs it turns on (7.2, 7.3) | General kinds: café or coffee shop, restaurant or food, bakery or sweets, grocery or small market, pharmacy, clothes and fashion, phones and electronics, salon or beauty, other services, online shop, something else. Today only the café and the small market have a template; the others start with the essentials until theirs is written |
 | Just me or with a team | Decides only whether the next step offers inviting people, what Home shows, and what the AI suggests | One tap, default "just me". It never turns features on or off: features come from the type, and what each person may do comes from their role |
 
 **Filled in, changeable in Settings:** language (Arabic), currency (EGP), time
@@ -1068,8 +1072,10 @@ logo, team members, Telegram.
 - **Names are not roles.** There is no `admin@nova`: `ahmed@nova` can be the
   owner. What a person may do comes only from their role (owner, manager,
   staff, viewer), and roles can change without changing the name
-- The username starts from the person's name, and they can change it. Each
-  business also keeps a **display name** for them ("Mr. Ahmed")
+- The username starts from the part of the email before the `@`
+  (`ahmednassem36@nova`). It is not shown or asked during setup; the person
+  sees and changes it later in Settings. Each business also keeps a **display
+  name** for them ("Mr. Ahmed"), from their name
 - Because handles have no dots, the log-in box tells the two apart:
   `ahmed@gmail.com` is an email, `ahmed@nova` is a business username
 - **Later, with the team pack:** staff with no email (a barista on the shop's
