@@ -84,8 +84,13 @@ messages, issues or pull requests:
 
 - IP addresses, server names, hosting providers or server plans
 - Test or deploy addresses and domains
-- Server users, folders, ports, limits or how a server is set up
+- Server users, folders, limits or how a server is set up
 - Keys, tokens, passwords or settings files with real values
+
+**One exception:** the port numbers the project's own parts use (web, backend,
+AI layer, database) may be written in the structure, because every subteam
+needs them. Never together with the server they run on: no IP, server name or
+address next to them.
 
 The design says only "our server" and "the test address". The real details are
 shared with the team outside GitHub. If one is pushed by mistake, it is removed

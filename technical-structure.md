@@ -1722,6 +1722,19 @@ flowchart LR
 | Backend, AI layer, database | Our server (to be arranged) |
 | Models | Rented GPUs, turned off when not needed |
 
+**Ports.** The project's parts use local ports **11000 to 11999** and nothing
+else; only the front door faces the internet. Proposed use (each subteam can
+change its own):
+
+| Port | Part |
+|------|------|
+| 11000 | Web |
+| 11001 | Backend (all four doors) |
+| 11002 | AI layer |
+| 11003 | Fake backend |
+| 11010 to 11019 | Model servers, when one runs on our server |
+| 11432 | PostgreSQL, reachable only from the project's own containers |
+
 ---
 
 ## 21. Code structure: repos and folders
