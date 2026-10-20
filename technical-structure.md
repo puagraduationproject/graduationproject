@@ -5,8 +5,8 @@
 > document and the single source of truth. When the team changes something,
 > this file changes first.
 >
-> It says **what** the system is, not which tools build it. The stack is still
-> open (see section 22).
+> It says **what** the system is. The stack for the backend and frontend is in
+> section 22 (agreed, can change later).
 >
 > Rewritten 2026-10-19 around four ideas: the product is a chat-first AI tool
 > for the business; the backend is an open ERP and CRM whose only door is its
@@ -1996,8 +1996,21 @@ app-ai-model/
 
 ## 22. Stack
 
-Not decided. Each subteam picks its tools and can change them as long as the
-contracts between parts hold. Things that affect the choice:
+**Backend and frontend: agreed 2026-10-20**, and can change later if the work
+shows a better choice. The AI side is the AI team's choice.
+
+| Part | Stack |
+|------|-------|
+| Staff app | React, TypeScript, Vite, opened in the browser; Tailwind with shadcn/ui; TanStack Query; i18next; answers streamed with server-sent events |
+| Shop pages and landing | Astro |
+| Backend | TypeScript on Node 22, Fastify, Kysely, plain SQL migrations per module schema |
+| Database | PostgreSQL 16, row-level security, pg-boss for the outbox and jobs |
+| Contracts | JSON Schema per tool, event and card; OpenAPI generated from them |
+| Security | argon2id passwords, sessions in secure cookies (sessions or tokens is still open, 26), roles checked on every tool call, rate limits, dependency and secret scanning in CI |
+| Tests | Vitest, a real PostgreSQL in a container, Playwright for the app |
+
+Each subteam can change its own tools as long as the contracts between parts
+hold. Things that shaped the choice:
 
 - The AI side trains and serves open models, which usually means Python for
   training and a model server with the chat-completions-with-tools API
