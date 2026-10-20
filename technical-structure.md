@@ -818,8 +818,13 @@ The foundation every module stands on.
 ```
 business          id, name, slug, business_type, currency, timezone, locale,
                   template_key, settings(jsonb), created_at
-user              id, email, phone, name, password_hash, locale
-session           id, user_id, created_at, expires_at, last_seen_at
+account           id, email (one account per email), email_verified_at, name,
+                  phone, password_hash (empty for Google-only), google_id,
+                  language, failed_logins, locked_until, created_at, updated_at
+email_code        id, email, code_hash, attempts, expires_at, used_at  (7.6)
+auth_ticket       id, account_id, ticket_hash, expires_at, used_at     (7.6)
+session           id, user_id, created_at, expires_at, last_seen_at  (later step)
+                  (every user_id points to account.id)
 membership        id, business_id, user_id, role, invited_by, joined_at
                   UNIQUE (business_id, user_id)
 invite            id, business_id, phone_or_email, role, token_hash, expires_at
@@ -984,6 +989,30 @@ not part of this design yet.
 | `core.list_locations` | Branches | R | | yes |
 | `core.get_audit_log` | Who changed what | R | | |
 | `core.notify` | Notification to a member | W | | |
+
+### 7.6 Sign up and log in
+
+Short, like the sign-up of the AI tools people already use. One start screen
+for both signing up and logging in: **Continue with Google**, or an email.
+
+**With Google:** the person picks their Google account; we keep the email
+(for notifications and codes) and the name. No password.
+
+**With email:** the email, then a 6-digit code sent to it, then a password.
+
+| Rule | |
+|------|-|
+| One email, one account | Signing up by email and later with Google (or the other way) is the same account |
+| Codes | 6 digits, valid 10 minutes, 5 tries, a new one after 60 seconds; stored only as a hash |
+| Passwords | At least 8 characters, stored only as an argon2id hash |
+| Logging in later | Email, then the password (or "email me a code instead"); a Google account uses Google |
+| Lock-out | 5 wrong passwords in a row lock the account for 15 minutes |
+| Setting or changing a password | Always proves it is the right person first: the old password, or a code sent to the email. An account with no password (Google) always uses a code |
+| After sign-up | The business setup (its name and type) comes next, not during sign-up |
+
+A checked code gives a short ticket (10 minutes, one use) that the next step
+(setting the password) must show. Staying logged in (sessions) comes in a
+later step.
 
 ---
 
