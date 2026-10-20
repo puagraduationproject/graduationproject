@@ -816,8 +816,9 @@ The foundation every module stands on.
 ### 7.1 What it owns
 
 ```
-business          id, name, slug, business_type, currency, timezone, locale,
-                  template_key, settings(jsonb), created_at
+business          id, name, handle (unique, 7.7), business_type, currency,
+                  timezone, locale, template_key, team_size(alone|team),
+                  settings(jsonb), created_at
 account           id, email (one account per email), email_verified_at, name,
                   phone, password_hash (empty for Google-only), google_id,
                   language, failed_logins, locked_until, created_at, updated_at
@@ -825,8 +826,9 @@ email_code        id, email, code_hash, attempts, expires_at, used_at  (7.6)
 auth_ticket       id, account_id, ticket_hash, expires_at, used_at     (7.6)
 session           id, user_id, created_at, expires_at, last_seen_at  (later step)
                   (every user_id points to account.id)
-membership        id, business_id, user_id, role, invited_by, joined_at
-                  UNIQUE (business_id, user_id)
+membership        id, business_id, user_id, username, display_name, role,
+                  invited_by, joined_at
+                  UNIQUE (business_id, user_id), UNIQUE (business_id, username)
 invite            id, business_id, phone_or_email, role, token_hash, expires_at
 role              business_id, name, permissions(jsonb)
                   defaults: owner, manager, staff, viewer
@@ -1013,6 +1015,50 @@ for both signing up and logging in: **Continue with Google**, or an email.
 A checked code gives a short ticket (10 minutes, one use) that the next step
 (setting the password) must show. Staying logged in (sessions) comes in a
 later step.
+
+### 7.7 Business setup and names
+
+Right after sign-up, one short screen. The business setup needs sessions
+(the backend must know who is creating the business), so sessions come first.
+
+**Asked before the business can be used:**
+
+| Question | Why | Notes |
+|----------|-----|-------|
+| Business name | Shown everywhere: the AI, the shop page, order messages | "Nova Café" |
+| Business handle | Its unique name in addresses and usernames | Filled in from the name (`nova`), the owner can change it |
+| Business type | Picks the template, so the packs it turns on (7.2, 7.3) | Coffee shop, small market, or something else (essentials only) |
+| Your name | What the AI and the team call you | Only asked when Google did not give it |
+| Just me or with a team | Decides only whether the next step offers inviting people, what Home shows, and what the AI suggests | One tap, default "just me". It never turns features on or off: features come from the type, and what each person may do comes from their role |
+
+**Filled in, changeable in Settings:** language (Arabic), currency (EGP), time
+zone (Cairo), the packs from the type, the AI model (Auto), the owner's
+username.
+
+**Asked later, when first needed** (by the AI in the chat, or in Settings): the
+menu or products (the AI asks for a photo first, and it can be skipped),
+opening hours, address and area, phone, delivery areas and fees, tables,
+logo, team members, Telegram.
+
+**Names work like email addresses:**
+
+- The **business handle** is unique across all businesses (`nova`): 3 to 30
+  lowercase letters, digits and dashes, no dots, not one of our own words
+  (`login`, `api`, `admin`, ...). It is used in the shop page address, invite
+  links and the business's log-in
+- Each person has a **username inside each business** (`ahmed`), unique only
+  in that business. Together they read **`ahmed@nova`**, like an email: the
+  same person can be `ahmed@nova` and `ahmed@bean`, with one account
+- **Names are not roles.** There is no `admin@nova`: `ahmed@nova` can be the
+  owner. What a person may do comes only from their role (owner, manager,
+  staff, viewer), and roles can change without changing the name
+- The username starts from the person's name, and they can change it. Each
+  business also keeps a **display name** for them ("Mr. Ahmed")
+- Because handles have no dots, the log-in box tells the two apart:
+  `ahmed@gmail.com` is an email, `ahmed@nova` is a business username
+- **Later, with the team pack:** staff with no email (a barista on the shop's
+  tablet) get an account made by the owner and log in with `ahmed@nova` and a
+  password or PIN. That is when the account's email becomes optional
 
 ---
 
@@ -1416,7 +1462,8 @@ Orders from the website go into the same order flow as every other channel.
 ### 11.3 What it owns
 
 ```
-store_settings   business_id, slug, domain, theme(jsonb), sections(jsonb), published
+store_settings   business_id, domain, theme(jsonb), sections(jsonb), published
+                 (the shop page address uses the business handle, 7.7)
 store_page       id, business_id, kind(home|menu|about|custom), content(jsonb),
                  seo(jsonb), published_at
 search_profile   business_id, descriptions(jsonb), structured_data(jsonb),
