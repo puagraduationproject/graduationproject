@@ -1793,6 +1793,9 @@ flowchart LR
 | Backend, AI layer, database | Our server (to be arranged) |
 | Models | Rented GPUs, turned off when not needed |
 
+**Cloud only for now** (agreed 2026-10-20). The app is a website, opened in the
+browser on any device. A desktop app comes later, when the team gets there.
+
 **Ports.** The project's parts use local ports **11000 to 11999** and nothing
 else; only the front door faces the internet. Proposed use (each subteam can
 change its own):
