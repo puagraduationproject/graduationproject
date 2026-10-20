@@ -1011,6 +1011,7 @@ for both signing up and logging in: **Continue with Google**, or an email.
 | Passwords | At least 8 characters, stored only as an argon2id hash |
 | Logging in later | Email, then the password (or "email me a code instead"); a Google account uses Google |
 | Lock-out | 5 wrong passwords in a row lock the account for 15 minutes |
+| Checking emails | The email step shows whether an account exists (like Google or Slack), so one visitor can check at most 10 emails an hour |
 | Setting or changing a password | Always proves it is the right person first: the old password, or a code sent to the email. An account with no password (Google) always uses a code |
 | After sign-up | The business setup (7.7) comes next, not during sign-up |
 
