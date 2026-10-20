@@ -1051,6 +1051,8 @@ then the business):
 | Business type | Picks the template, so the packs it turns on (7.2, 7.3) | General kinds: café or coffee shop, restaurant or food, bakery or sweets, grocery or small market, pharmacy, clothes and fashion, phones and electronics, salon or beauty, other services, online shop, something else. **For now a type is only a name:** it links no template and turns nothing on; every business starts with the essentials until the team decides what each type means |
 | Just me or with a team | Decides only whether the next step offers inviting people, what Home shows, and what the AI suggests | One tap, default "just me". It never turns features on or off: features come from the type, and what each person may do comes from their role |
 
+One account can create at most 5 businesses (against abuse; can be raised).
+
 **Filled in, changeable in Settings:** language (Arabic), currency (EGP), time
 zone (Cairo), the packs from the type, the AI model (Auto), the owner's
 username.
@@ -1719,11 +1721,37 @@ offered only when the packs it needs are on.
   cash, sales, approval, plan, post); an unknown card shows its plain text
 - Arabic right-to-left and mobile from day one
 
+**The first page after log-in is Home**, like a chat app (agreed 2026-10-21;
+the flow of Claude's app is the reference, not its look):
+
+- **Sidebar**, which folds away (on phones it is closed by default):
+  - at the top, the **business switcher** ("Nova Café ▾") for a person in more
+    than one business
+  - **+ New request** and **Search** (threads)
+  - the parts of the business, only those the person's role and the packs on
+    allow, with counts ("Inbox 2"); the rarely used ones under **More**
+  - **Pinned** and **Recent threads**
+  - at the bottom, the person: `ahmed@nova · Owner`, with My account,
+    Settings and Log out
+- **The middle:** a greeting, **at most 3 cards** of what needs the person
+  today (Home is a to-do list, 1.5), then the chat box with the **+** menu,
+  the model picker and **Ask first / Act alone** under it. With nothing to
+  show, it is only the greeting and the box. A thread gets its own address
+- **The first time, right after setup,** the business is empty, so Home
+  finishes the setup in the chat: "Welcome, Ahmed. Nova Café is ready. Let's
+  add what you sell first", and quick buttons under the box: **Send a photo of
+  your menu**, **Add a product**, **Connect Telegram**. Each is a skill; a
+  button goes once its step is done (the "asked later" list of 7.7)
+- **Addresses:** on the test address, the landing page is `/` for people who
+  are not logged in, and Home is `/home`; a logged-in person who opens `/`
+  goes to Home. Later the app moves to `app.<domain>` (20) with Home at `/`
+- Until the AI layer is connected, the chat box answers from the fake backend
+
 ### 17.2 Windows: 15
 
 | # | Window | Who | What is in it | Term |
 |:-:|--------|-----|---------------|:----:|
-| 1 | Sign up and setup | New owner | Account, business type, name, language; a menu photo becomes items | 1 |
+| 1 | Sign up and setup | New owner | Account (7.6), then the business setup (7.7): your name, business name, handle, type, just me or a team. The menu photo and the rest come on the first Home (17.1) | 1 |
 | 2 | **Home: AI chat** | Everyone in the business | Briefing cards, the chat, threads, side panel | 1 |
 | 3 | Sales screen | Cashier, barista | Big buttons, cart, payment, shift open and close with the cash count | 1 |
 | 4 | Orders | Staff | Board of open orders by stage | 1 |
@@ -1737,7 +1765,7 @@ offered only when the packs it needs are on.
 | 12 | Website and search | Owner | Pages, banner, look, search presence, reviews | 1 basic, 2 full |
 | 13 | Shop page | Customer | The menu and the chat on one page | 1 |
 | 14 | Order status | Customer | Stage and ready time, from a link | 1 |
-| 15 | Landing page | Shop owners | What it is, the waiting list sign-up | 1 |
+| 15 | Landing page | Shop owners | What it is, with the sign-up box on it (real accounts, 7.6); privacy and terms pages | 1 |
 
 What each role sees (draft; Security decides):
 

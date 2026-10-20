@@ -85,7 +85,7 @@ here is ordered into term 2 (23), not dropped.
 | Target | By practice (week 10) | By the real presentation |
 |--------|:---------------------:|:------------------------:|
 | Interviews with coffee shop and small market owners | 30 | 30+ |
-| Sign-ups on the waiting list | 30 | 50 |
+| Sign-ups (accounts made from the landing page) | 30 | 50 |
 | Shops that agree in writing to try the system | 2 | 5 |
 | Pilot shops using the system for real | - | 2 to 3, with feedback and numbers |
 | Real quotes about their problems | Yes | Yes, plus pilot quotes |
