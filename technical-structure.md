@@ -358,6 +358,36 @@ Rules:
 - An end-to-end test runs each process in 2.7 through every module, and a
   contract test checks that each module accepts and returns the shared shapes
 
+### 2.9 Two sides: the platform and the business systems
+
+The backend has two sides, like an AI code editor and the files it works on.
+The editor runs the user's session and the agent; the files and the shell are
+worked on only through the editor's tools. In the same way:
+
+| Side | What it is | Parts | Code |
+|------|-----------|-------|------|
+| **The platform** | Runs the product, not one business: who you are, which business, what is on, who may do what, and the door the AI comes through | Accounts, log-in, sessions, devices, emails; businesses, members, roles, names (7.7); templates and packs; the tool registry; permissions, audit, events, scheduler, approvals, undo, dry run; the AI door (service token, who the AI acts for) and streaming to the app | `platform/`, `modules/core/` |
+| **The business systems** | The business's own records and rules. Each one stands alone | ERP, CRM, Channels, Store website, Reports (Studio, Marketing and Team in term 2) | `modules/erp/`, `modules/crm/`, ... |
+
+Rules:
+
+1. Each business system stands alone: its own schema, its own database user,
+   its own tools and tool pages. It works the same whether a screen, the AI or
+   an outside caller uses it, and it knows nothing about sessions or models
+2. The platform reaches a business system only through its tools. A business
+   system never reads the platform's tables; it gets who is acting and which
+   business from the call's context (2.6)
+3. Business systems talk to each other only through events and service calls
+   (2.7, 2.8)
+4. Both sides run in **one backend and one database** (2.3). Because the line
+   between them is the tools, any business system can later move into its own
+   program without changing a tool
+5. The AI itself (models, skills, the agent) is the AI layer (6). The platform
+   only gives it the door and the tools
+
+The two backend members can work one side each; they meet only at the tool
+pages in `contracts/tools/`.
+
 ---
 
 ## 3. The four layers: functions, tools, skills, model

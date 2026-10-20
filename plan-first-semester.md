@@ -202,6 +202,19 @@ before it is built.
   model reads them), the cards (Frontend), the training format (AI agent and AI
   data), the roles and the AI defaults (Security and AI agent)
 
+### 3.1 Backend: two tracks
+
+The backend has two sides (2.9 in the design): the platform and the business
+systems. Each backend member takes one track; they meet at the tool pages.
+
+| Week | Platform track | Business systems track |
+|:----:|----------------|------------------------|
+| 5 | Done: accounts, log-in, sessions and devices, business setup, the wall between businesses, audit, outbox. Next: roles and permissions, packs and templates, the tool registry, inviting members | The demo coffee shop data, the fake backend, shared pieces (money, per-business numbers, retry keys) |
+| 6 | The AI door (service token, who the AI acts for), Home routes | Catalog, recipes and cost, the stock ledger and levels, suppliers |
+| 7 | Streaming relay to the app, realtime for the Orders board | Orders, counter sales, shifts and cash, purchases, expenses, Reports first version |
+| 8 | The public door and its limits | Channels (website chat, Telegram), CRM (customers, identities, loyalty, cases, bookings), Store (shop page, order status) |
+| 9 | Scheduler, approvals, undo, dry run, the AI action log | Low stock, cash gap and cost change events, demo data, home numbers |
+
 ---
 
 ## 4. How the subteams connect
