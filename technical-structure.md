@@ -824,7 +824,9 @@ account           id, email (one account per email), email_verified_at, name,
                   language, failed_logins, locked_until, created_at, updated_at
 email_code        id, email, code_hash, attempts, expires_at, used_at  (7.6)
 auth_ticket       id, account_id, ticket_hash, expires_at, used_at     (7.6)
-session           id, user_id, created_at, expires_at, last_seen_at  (later step)
+session           id, account_id, token_hash, browser, user_agent, first_ip,
+                  last_ip, created_at, last_seen_at, proved_at, expires_at,
+                  ended_at, end_reason                                 (7.6)
                   (every user_id points to account.id)
 membership        id, business_id, user_id, username, display_name, role,
                   invited_by, joined_at
@@ -1010,11 +1012,24 @@ for both signing up and logging in: **Continue with Google**, or an email.
 | Logging in later | Email, then the password (or "email me a code instead"); a Google account uses Google |
 | Lock-out | 5 wrong passwords in a row lock the account for 15 minutes |
 | Setting or changing a password | Always proves it is the right person first: the old password, or a code sent to the email. An account with no password (Google) always uses a code |
-| After sign-up | The business setup (its name and type) comes next, not during sign-up |
+| After sign-up | The business setup (7.7) comes next, not during sign-up |
 
 A checked code gives a short ticket (10 minutes, one use) that the next step
-(setting the password) must show. Staying logged in (sessions) comes in a
-later step.
+(setting the password) must show.
+
+**Staying logged in (sessions):**
+
+| Rule | |
+|------|-|
+| The key | A random key in a cookie scripts cannot read, sent only over HTTPS; the database keeps only its hash, so it can be ended at once |
+| How long | Ends after 7 days unused, and 30 days after log-in in any case |
+| Sensitive actions | Changing the password or email, roles, payouts, deleting: the person proves it is them again when the last proof is older than 15 minutes. With two-factor on (later), that is the authenticator code; otherwise a code sent to the email |
+| Devices | At most 5 per account; a sixth log-in ends the least recently used. My account lists them, with "log out" and "log out of all others" |
+| New log-in email | Every log-in after the first: which browser and when |
+| Browser check | The browser and system are saved at log-in; if the key shows up from another one (a stolen cookie), the session ends. The IP is saved and shown, but not tied: phones change IP between Wi-Fi and mobile data all day |
+| Password set or changed | Every other device is logged out |
+| Other sites | Write requests from another site are refused |
+| Two-factor (later) | An authenticator app, offered in My account |
 
 ### 7.7 Business setup and names
 
