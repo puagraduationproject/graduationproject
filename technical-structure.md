@@ -1072,9 +1072,10 @@ logo, team members, Telegram.
 - **Names are not roles.** There is no `admin@nova`: `ahmed@nova` can be the
   owner. What a person may do comes only from their role (owner, manager,
   staff, viewer), and roles can change without changing the name
-- The username starts from the part of the email before the `@`
-  (`ahmednassem36@nova`). It is not shown or asked during setup; the person
-  sees and changes it later in Settings. Each business also keeps a **display
+- The username starts from the person's first name in Latin letters
+  (`ahmed@nova`), or from the email before the `@` when the name has none (an
+  Arabic name). It is not shown or asked during setup; the person sees and
+  changes it later in Settings. Each business also keeps a **display
   name** for them ("Mr. Ahmed"), from their name
 - Because handles have no dots, the log-in box tells the two apart:
   `ahmed@gmail.com` is an email, `ahmed@nova` is a business username
