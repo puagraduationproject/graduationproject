@@ -76,3 +76,17 @@ Security. Who owns what is in section 3 of the [term 1 plan](plan-first-semester
    disagree, the design wins and the plan is updated
 4. Changes reach `main` through a pull request with one review
 5. A retired document moves into `archive/` whole. Nothing is taken back out of it
+
+## Never in any repo
+
+No server information goes into any of the team's repos, in files, commit
+messages, issues or pull requests:
+
+- IP addresses, server names, hosting providers or server plans
+- Test or deploy addresses and domains
+- Server users, folders, ports, limits or how a server is set up
+- Keys, tokens, passwords or settings files with real values
+
+The design says only "our server" and "the test address". The real details are
+shared with the team outside GitHub. If one is pushed by mistake, it is removed
+from the history, not just from the latest version.
