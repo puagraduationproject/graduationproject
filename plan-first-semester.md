@@ -94,8 +94,9 @@ here is ordered into term 2 (23), not dropped.
 
 These answer the research questions (24).
 
-- Our tuned models powering every AI answer, on both tiers, with no ready-made
-  commercial model anywhere (6.10)
+- Our tuned models powering every AI answer, on both tiers. The model picker
+  with other models, and the comparison with commercial ones, are term 2 (6.2);
+  commercial models never make training data (6.10)
 - A test set of 150+ requests (coffee shop, small market, Egyptian Arabic,
   Franco, English), plus test cases for every term 1 core and template skill (5.5)
 - Tuned versus untuned base model on the same test set, per tier

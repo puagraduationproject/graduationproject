@@ -12,6 +12,10 @@
 > for the business; the backend is an open ERP and CRM whose only door is its
 > tools; what the AI knows how to do is written as skills; and every business
 > uses only the parts it needs, from a library of packs.
+>
+> Updated 2026-10-20: the product works like an AI code editor, but for a
+> business. One app, the same tools and skills for every model, and a model
+> picker with our own tuned model as the default.
 
 ---
 
@@ -55,6 +59,25 @@ manager that knows only that business. It talks to customers, takes orders,
 handles complaints, watches stock and money, helps manage the staff, runs the
 marketing and the website, and tells the owner what needs attention.
 
+**It works like an AI code editor, but for a business.** In an AI code editor,
+the developer talks to a model, and the model works on the code through real
+tools (the terminal, files, git) with the developer's approval. The developer
+can pick the editor's own model or another one; every model uses the same tools.
+Here the owner talks to a model, and the model runs the business through the
+business's real tools: every function of its ERP and CRM.
+
+| AI code editor | Project X |
+|----------------|-----------|
+| The app: chat, approvals, "ask before running" | The app: chat, cards, the AI's permissions (6.6) |
+| The tools: terminal, files, git | The tools: every ERP and CRM function (section 4) |
+| The codebase | The business: menu, stock, orders, customers, cash |
+| Skills and rules the developer adds | Skills the business adds (section 5) |
+| A model picker: the editor's own model plus others | A model picker: our tuned model plus others (6.2) |
+
+Because the AI has all the real tools and sees the whole business, it can
+suggest better than any single screen or app. The backend does not care which
+model calls its tools.
+
 The owner opens the app and sees a chat, not a dashboard. The sidebar lists the
 parts of the business (orders, stock, customers, inbox) instead of chat history.
 Every answer comes as text, cards and buttons. The owner never sees "ERP" or
@@ -77,14 +100,18 @@ category; these two prove it.
 3. **Use only what you need.** Every business gets the essentials; everything
    else is a pack in a library that the owner turns on or off. A template is a
    recommended set of packs.
-4. **Our own tuned models.** The AI team's open models, fine-tuned to run a small
-   business through tools. No ready-made commercial model (GPT, Claude, Gemini)
-   is used anywhere. The owner decides what the AI may do alone.
+4. **Any model, ours by default.** The AI team's open models, fine-tuned to run
+   a small business through tools, are the default and the research subject.
+   The owner may pick another model, including a commercial one (GPT, Claude,
+   Gemini); it uses the same tools, skills and permissions. Commercial models
+   never make training data for ours. The owner decides what the AI may do
+   alone, whichever model runs.
 
 ```mermaid
 flowchart TD
   P["Customers, owner, staff"] --> UI["Chat-first app, shop website, Telegram, WhatsApp"]
   UI --> AI["AI layer: customer face, owner face, jobs, planner"]
+  AI --> MP["Model picker: our tuned models by default, or another model"]
   UI -->|"buttons"| TL
   AI --> SK["Skills: written know-how, unlimited, owner can edit"]
   SK --> TL["Tools: published by each module"]
@@ -352,7 +379,7 @@ flowchart TD
 | System functions | Each module's services and data | Hundreds | Backend | Free, as long as the tools stay the same |
 | **Tools** | The business's API, in business words | About 150 in total; 5 to 15 loaded for one task | Each module's team, agreed in the contracts | **Rare and careful.** The model is trained on them |
 | **Skills** | Written playbooks | As many as needed | The team, the templates, the owner, and the AI (with approval) | **Free.** They are text, so no retraining |
-| Model | Our tuned models | The AI team decides (two tiers proposed) | AI team | Retrain and re-test |
+| Model | Our tuned models by default; the owner may pick another (6.2) | The AI team decides (two tiers proposed) | AI team | Retrain and re-test; any model uses the same tools and skills |
 
 **Tools decide what the AI can do. Skills decide what it knows how to do well.**
 A skill can never do more than its tools allow, and a tool can never do more
@@ -363,7 +390,7 @@ The same tools serve three callers:
 | Caller | How it calls | Sees |
 |--------|--------------|------|
 | The app (buttons, screens) | Logged-in member's session | What the member's role allows |
-| The AI | Service token, plus who it acts for (a member, or a customer in a conversation) | What that person may see and do, narrowed by face |
+| The AI, whichever model runs it | Service token, plus who it acts for (a member, or a customer in a conversation) | What that person may see and do, narrowed by face |
 | Outside websites (term 2) | API key per business | What the owner allows for that key |
 
 ---
@@ -458,9 +485,9 @@ them:
 | Reading images (menu photos, invoices) | AI layer | 2 |
 | Image model (post backgrounds, product shots) | Studio | 2 |
 
-Every model in this list is an open model the team runs, the same rule as the
-main models. Using a commercial model for any of them needs the team to change
-that rule first.
+The models in this list follow the same rule as the main models (6.2): open
+models the team runs by default, and a commercial one only where the owner
+picks it.
 
 ---
 
@@ -533,12 +560,26 @@ So an edited skill changes **how** the AI works, never **what it is allowed** to
 
 Every core and template skill has test cases in the test set.
 
+### 5.6 Skills work with any model
+
+A skill is not part of the backend or of the model. It is written instructions
+the model reads when it needs them, the way a developer adds skills to an AI
+code editor. So:
+
+- Skills belong to the business (core, template and its own, 5.2), and the AI
+  layer loads them for whichever model runs
+- Changing the model never changes the skills, and changing a skill never
+  needs retraining
+- A skill names tools only; it never depends on one model's tricks. Every core
+  and template skill is tested with our tuned models, and the scores of other
+  models are recorded (24)
+
 ---
 
 ## 6. AI layer
 
-The main part of the product. Our tuned models, two faces, background jobs, and
-a planner.
+The main part of the product. Our tuned models (or the model the owner picks),
+two faces, background jobs, and a planner.
 
 ### 6.1 Two faces and the jobs
 
@@ -548,9 +589,30 @@ a planner.
 | **Owner partner** | Owner, manager, staff | Big | Answers about sales, costs, cash, stock, staff; acts by talking; plans multi-step work; asks approval for risky actions; helps staff ("how do I make a Spanish latte?") |
 | **Jobs** | Nobody directly; they start on a schedule or an event | Big | Morning briefing, alerts, follow-ups, post suggestions, monthly value report |
 
-### 6.2 Two model tiers
+### 6.2 Models: ours by default, any model by choice
 
-A customer asking for a latte should not wait for a big model to think. So each
+Like an AI code editor, the app has a **model picker**:
+
+| Choice | What it means |
+|--------|---------------|
+| **Auto** (default) | Our tuned models, with the tiers below picked automatically |
+| **Another model** | A model the team has connected, open or commercial (GPT, Claude, Gemini). The owner picks it per face: owner partner, customer agent, jobs |
+
+Rules for every model, ours or not:
+
+- The same tools, skills, permissions (6.6), policy gate and audit. A model
+  never gets more than the tools allow, so changing the model never changes
+  what the AI may do
+- A commercial model sends the business's data to the company that runs it,
+  and it costs money per use. The picker says both clearly before the owner
+  switches, and the switch is audited (`AiModelChanged`)
+- Personal data the model does not need is masked before it leaves our server
+- Runs by commercial models are never used as training or test data for our
+  models (6.10)
+- If a picked model fails or is not reachable, the AI falls back to our models,
+  not the other way round
+
+**Our two model tiers.** A customer asking for a latte should not wait for a big model to think. So each
 model has its own place, under one workflow:
 
 The tiers below are the AI team's proposal; the AI team decides the models,
@@ -561,7 +623,7 @@ their sizes and how many tiers.
 | **Small** | About 4B | Customer agent | Fast replies on chat; few tools (the customer face loads at most 10) |
 | **Big** | About 50B | Owner partner, jobs, planning, hard customer cases passed up by the policy gate | Better reasoning and multi-step plans |
 
-Routing between the tiers is automatic; nobody picks a model. Both are open base
+On Auto, routing between the tiers is automatic. Both are open base
 models the team fine-tunes to manage a small business in Egyptian Arabic, Franco
 and English through tools. They adapt to any category: the category comes from
 the template, the skills and the business brain, not from retraining.
@@ -691,11 +753,14 @@ is written to the audit log with `actor_type = ai`.
 | `ai.save_skill` | Saves a new or edited skill, after the owner confirms |
 | `ai.get_permissions` | What the AI may do here: each area's setting and limit (6.6) |
 | `ai.set_permission` | Changes a setting. Called only by the app when the owner taps it; never by the AI |
+| `ai.list_models` | The models the owner can pick (6.2), with where each runs, what it costs and what data leaves our server |
+| `ai.set_model` | Sets the model per face. Called only by the app when the owner taps it; never by the AI. Emits `AiModelChanged` |
 
 ### 6.10 The models and training
 
 - **Our own models:** open base models, fine-tuned by the team with LoRA on
-  rented GPUs. No ready-made commercial model anywhere
+  rented GPUs. Commercial models are never used to make, label or check
+  training data, and their runs are never kept as training data
 - **Candidates to compare** (check for newer versions first): a strong
   tool-using family (for example Qwen3) and an Egyptian-dialect model (for
   example Nile-Chat), for each tier
@@ -736,6 +801,11 @@ Both tiers run on our own rented GPU servers, behind the standard
 chat-completions-with-tools API, with streaming. Swapping a base model changes
 settings, not code. If the model does not answer in time, the AI sends a short
 holding message or hands off.
+
+Other models in the picker (6.2) sit behind a model adapter, like any outside
+service. The adapter turns the tool reference into each model's tool format
+and back, so the tools, skills and policy gate stay the same for every model.
+Adding a model is a new adapter setting, never a change to tools or skills.
 
 ---
 
@@ -1542,8 +1612,9 @@ offered only when the packs it needs are on.
   packs that are on, plus recent threads and pinned items
 - The **+** menu: upload a menu photo or an invoice, quick actions (skills),
   channels
-- **Ask first / Act alone** sits where a model picker would be. Routing between
-  the model tiers is automatic
+- The **model picker** sits under the chat box, next to **Ask first / Act
+  alone**: Auto (our models, tiers picked automatically) by default, or another
+  model the owner picks (6.2)
 - Answers stream: text first, cards when tools return
 - The AI answers only with the app's own cards (order, item, stock, customer,
   cash, sales, approval, plan, post); an unknown card shows its plain text
@@ -1932,6 +2003,8 @@ contracts between parts hold. Things that affect the choice:
 - Row-level security, schemas per module and transactions point to PostgreSQL
 - The contracts (tools, events, cards, the training example format) should use a
   standard format both TypeScript and Python can read
+- Any model must be able to call the tools, so the tool reference must turn
+  into the standard tool formats models read, without hand work per model
 - The sales screen must work on tablets and phones; answers must stream
 
 ---
@@ -1943,7 +2016,7 @@ Nothing is dropped. Everything is ordered.
 | Area | Term 1 (first presentation) | Term 2 (full product) |
 |------|-----------------------------|-----------------------|
 | AI | Customer agent, owner partner, morning briefing, alerts, approvals, planner, core skills, owner skill edits (basic) | All jobs, monthly value report, AI-suggested skills, voice and images |
-| Models | Both tiers tuned, test set, tuned vs untuned, adaptation test | Larger training data, more categories, image model |
+| Models | Both tiers tuned, test set, tuned vs untuned, adaptation test | Larger training data, more categories, image model, model picker with other models, our models compared with commercial ones on the test set |
 | Core | Businesses, members, roles, audit, templates (coffee shop, small market), essentials and the library of packs | More templates, outside API keys |
 | ERP | Menu, recipes, stock, waste, sales screen, orders, shifts and cash, suppliers and purchases, cost per item, credit basic | Offline sales, credit in full, expiry in full, branches and transfers, payments and couriers, e-invoicing |
 | CRM | Customers, identities, timeline, usual order, loyalty, notes, support cases, bookings basic | Segments, consent, merging, bookings in full |
@@ -1969,6 +2042,8 @@ the team's decision; the term 1 plan changes with it.
    and little extra data?
 3. Does splitting the work into tools and skills let the model handle new tasks
    without retraining?
+4. With the same tools and skills, how close does our tuned model come to
+   commercial models, at what cost per conversation?
 
 **Measured:**
 
@@ -1981,6 +2056,7 @@ the team's decision; the term 1 plan changes with it.
 | Reply time | Seconds, median and 90th percentile, per tier |
 | Owner time and money saved | Pilot, compared with a baseline week before the AI is on |
 | Tuned versus untuned | Same test set, tuned against the untuned base model, per tier |
+| Tuned versus commercial | Same test set, tools and skills; our tuned models against commercial models, with cost per conversation |
 | Adaptation | Score on a category barely seen in training |
 | New skills | Score on skills written after training |
 
@@ -2001,6 +2077,9 @@ the team's decision; the term 1 plan changes with it.
 | Scope creep | Work goes by term; one person has the final say on scope |
 | Data leaks between businesses | Row-level security, schema users and tests that try to cross businesses |
 | Shops do not adopt it | Built from shop visits; fast sales screen; visible monthly value |
+| A picked commercial model leaks business data or costs too much | Our models stay the default; the picker shows what leaves our server and the cost before switching; personal data masked; owner-only switch, audited |
+| Skills quietly come to depend on one model | Skills name tools only (5.6); the test set runs on more than one model |
+| Commercial runs leak into our training data | Runs are tagged by model; only runs by our models can become training or test data (6.10) |
 
 ---
 
@@ -2014,5 +2093,10 @@ Decisions still open before the structure is final:
 3. **The models:** which base models, which sizes, one or two tiers, and the GPU
    cost. The AI team decides
 4. **Packs and plans:** whether some packs become paid plans
-5. **Images:** whether an open image model is good enough for posts, or the
-   team changes the rule on commercial models for images only (4.5)
+5. **Images:** whether an open image model is good enough for posts, or posts
+   default to a commercial image model the owner picks (4.5)
+6. **Other models:** which models the picker offers, who pays for commercial
+   ones (the business or a plan), and what the data protection law allows to
+   leave the country
+7. **Comparison timing:** whether "tuned versus commercial" moves into term 1
+   for the first presentation

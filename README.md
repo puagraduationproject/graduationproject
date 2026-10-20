@@ -40,8 +40,11 @@ From section 0 of the technical structure:
    and stable; skills are written know-how that the owner can change by talking
 3. **Use only what you need.** Every business gets the essentials; the rest is a
    library of packs it turns on and off. A template is a recommended set of packs
-4. **Our own tuned models.** Open models fine-tuned by the team. No ready-made
-   commercial model anywhere. The owner decides what the AI may do alone
+4. **Any model, ours by default.** It works like an AI code editor, but for a
+   business: every model uses the same tools and skills. Our open models,
+   fine-tuned by the team, are the default; the owner may pick another,
+   including a commercial one. Commercial models never make training data for
+   ours. The owner decides what the AI may do alone
 
 ## The code
 
