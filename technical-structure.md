@@ -1847,6 +1847,16 @@ sales screen calls `erp.record_counter_sale`; stock is deducted and
 - Public website and chat: limits against spam and fake orders
 - Outside API keys (term 2) scoped per business and per tool area
 - No secrets in the repository
+- **The browser gets only what the screen shows.** No internal IDs (a business
+  is named by its handle, a person by `username@handle`), no reason text in
+  errors (only the code and the field; the reason goes to the backend's log),
+  no rate-limit numbers, no server names or versions. Personal answers are
+  never cached. The web app sends the standard safety headers (content
+  security policy, no framing, no type sniffing)
+- The backend works in the database as a normal role, never as the owner, so
+  row-level security always applies to it. The few reads that must cross
+  businesses (is this handle free, which businesses am I in) are narrow
+  database functions
 
 ---
 
