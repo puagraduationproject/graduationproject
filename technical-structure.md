@@ -1797,15 +1797,19 @@ flowchart LR
 browser on any device. A desktop app comes later, when the team gets there.
 
 **Ports.** The project's parts use local ports **11000 to 11999** and nothing
-else; only the front door faces the internet. Proposed use (each subteam can
-change its own):
+else; only the front door faces the internet. The front door sends all our
+traffic to **our own router on 11000**, and the router owns every path, so we
+add or change a path in our own config and deploy it with the rest. Proposed
+use (each subteam can change its own):
 
 | Port | Part |
 |------|------|
-| 11000 | Web |
+| 11000 | Our router: `/` to the staff app, `/api/` and `/webhooks/` to the backend, the shop pages and landing to their part |
 | 11001 | Backend (all four doors) |
 | 11002 | AI layer |
 | 11003 | Fake backend |
+| 11004 | Staff app |
+| 11005 | Shop pages and landing |
 | 11010 to 11019 | Model servers, when one runs on our server |
 | 11432 | PostgreSQL, reachable only from the project's own containers |
 
