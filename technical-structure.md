@@ -10,15 +10,17 @@
 >
 > Rewritten 2026-10-19 around four ideas: the product is a chat-first AI tool
 > for the business; the backend is an open ERP and CRM whose only door is its
-> functions; what the AI knows how to do is written as skills; and every business
+> system calls; what the AI knows how to do is written as skills; and every business
 > uses only the parts it needs, from a library of packs.
 >
 > Updated 2026-10-20: the product works like an AI code editor, but for a
-> business. One app, the same functions and skills for every model, and a model
+> business. One app, the same system calls and skills for every model, and a model
 > picker with our own tuned model as the default.
 >
-> Updated 2026-10-21: what the backend offers is called **functions** (before:
-> tools). The modules' own code under them is called **internal code**.
+> Updated 2026-10-21: what the backend offers is called **system calls** (syscalls;
+> before: tools, then functions). The modules' own code under them is called
+> **internal code**. The parts that talk to outside services (Telegram, Meta,
+> payments) are called **drivers** (before: adapters).
 
 ---
 
@@ -27,8 +29,8 @@
 0. [The idea in one page](#0-the-idea-in-one-page)
 1. [The problem and the people](#1-the-problem-and-the-people)
 2. [Architecture rules](#2-architecture-rules)
-3. [The four layers: internal code, functions, skills, model](#3-the-four-layers-internal-code-functions-skills-model)
-4. [Functions](#4-functions)
+3. [The four layers: internal code, system calls, skills, model](#3-the-four-layers-internal-code-system-calls-skills-model)
+4. [System calls](#4-system-calls)
 5. [Skills](#5-skills)
 6. [AI layer](#6-ai-layer)
 7. [Core](#7-core)
@@ -67,19 +69,19 @@ the developer talks to a model, and the model works on the code through real
 tools (the terminal, files, git) with the developer's approval. The developer
 can pick the editor's own model or another one; every model uses the same tools.
 Here the owner talks to a model, and the model runs the business through the
-business's real functions: every function of its ERP and CRM.
+business's real system calls: every system call of its ERP and CRM.
 
 | AI code editor | PUA Graduation Project |
 |----------------|-----------|
 | The app: chat, approvals, "ask before running" | The app: chat, cards, the AI's permissions (6.6) |
-| The tools: terminal, files, git | The functions: every ERP and CRM function (section 4) |
+| The tools: terminal, files, git | The system calls: every ERP and CRM system call (section 4) |
 | The codebase | The business: menu, stock, orders, customers, cash |
 | Skills and rules the developer adds | Skills the business adds (section 5) |
 | A model picker: the editor's own model plus others | A model picker: our tuned model plus others (6.2) |
 
-Because the AI has all the real functions and sees the whole business, it can
+Because the AI has all the real system calls and sees the whole business, it can
 suggest better than any single screen or app. The backend does not care which
-model calls its functions.
+model calls its system calls.
 
 The owner opens the app and sees a chat, not a dashboard. The sidebar lists the
 parts of the business (orders, stock, customers, inbox) instead of chat history.
@@ -92,21 +94,21 @@ category; these two prove it.
 
 **Four ideas hold the design together:**
 
-1. **The backend is an open ERP and CRM whose only door is its functions.** Every
-   module publishes everything it can do as functions, each documented in full. The
+1. **The backend is an open ERP and CRM whose only door is its system calls.** Every
+   module publishes everything it can do as system calls, each documented in full. The
    staff app's buttons, the AI, and later outside websites all use the same
-   functions, with the same permissions and the same audit.
-2. **Functions say what is possible. Skills say how to do it well.** They work like
+   system calls, with the same permissions and the same audit.
+2. **System calls say what is possible. Skills say how to do it well.** They work like
    the functions of a library: as many as the system needs, few loaded per
-   task, stable and safe. Skills are written know-how (steps, which functions, what
+   task, stable and safe. Skills are written know-how (steps, which system calls, what
    to check), as many as needed, and the owner can change them.
 3. **Use only what you need.** Every business gets the essentials; everything
    else is a pack in a library that the owner turns on or off. A template is a
    recommended set of packs.
 4. **Any model, ours by default.** The AI team's open models, fine-tuned to run
-   a small business through functions, are the default and the research subject.
+   a small business through system calls, are the default and the research subject.
    The owner may pick another model, including a commercial one (GPT, Claude,
-   Gemini); it uses the same functions, skills and permissions. Commercial models
+   Gemini); it uses the same system calls, skills and permissions. Commercial models
    never make training data for ours. The owner decides what the AI may do
    alone, whichever model runs.
 
@@ -117,10 +119,10 @@ flowchart TD
   AI --> MP["Model picker: our tuned models by default, or another model"]
   UI -->|"buttons"| TL
   AI --> SK["Skills: written know-how, unlimited, owner can edit"]
-  SK --> TL["Functions: published by each module"]
+  SK --> TL["System calls: published by each module"]
   AI -->|"no skill fits"| TL
   TL --> MOD["Modules: Core, ERP, CRM, Channels, Store, Studio, Marketing, Team, Reports"]
-  TL --> OUT["Outside functions through adapters: channels, payments, couriers, image model"]
+  TL --> OUT["Outside system calls through drivers: channels, payments, couriers, image model"]
   MOD --> DB[("One database, one schema per module")]
 ```
 
@@ -207,9 +209,9 @@ One backend made of strict modules and one database. Not microservices.
 1. **One owner per piece of data.** Others reference it by ID, never copy it
 2. **Modules talk through events.** No module touches another module's tables
 3. **Reading across modules is a service call**
-4. **Functions are the only door.** The app, the AI and outside callers use the
-   same functions. There is no second, hidden way in
-5. **The AI acts only through functions.** It owns no business data and never reads
+4. **System calls are the only door.** The app, the AI and outside callers use the
+   same system calls. There is no second, hidden way in
+5. **The AI acts only through system calls.** It owns no business data and never reads
    the business tables
 6. **Every write is audited, every state change emits an event**
 
@@ -222,7 +224,7 @@ One backend made of strict modules and one database. Not microservices.
 - Order lines snapshot name, price and cost at the time of sale
 - Every business-scoped table has `business_id`, locked by row-level security
 - Events go through an outbox, written in the same transaction as the change
-- Outside services (channels, payments, couriers, image model) sit behind adapters
+- Outside services (channels, payments, couriers, image model) sit behind drivers
 - A test that tries to read another business's data, and must fail
 
 ### 2.2 Who owns what
@@ -238,7 +240,7 @@ One backend made of strict modules and one database. Not microservices.
 | Offers, campaigns | Marketing |
 | Staff profiles, rota, attendance, tasks | Team |
 | Summary numbers | Reports |
-| Skills, plans, approvals, AI permission settings, memory, threads, knowledge, AI action log | AI layer (its own data only; business data only through functions) |
+| Skills, plans, approvals, AI permission settings, memory, threads, knowledge, AI action log | AI layer (its own data only; business data only through system calls) |
 
 ### 2.3 One database, one schema per module
 
@@ -260,7 +262,7 @@ own schema. The AI layer's user cannot see any business schema.
 
 ### 2.4 Working together: one thing, one ID, everywhere
 
-Each module builds its own part with its own functions. What holds them together is
+Each module builds its own part with its own system calls. What holds them together is
 that every shared thing has **one owner and one ID**, and every other module
 stores only that ID.
 
@@ -314,7 +316,7 @@ flowchart LR
 
 ### 2.6 The glue every call and event carries
 
-Every function call, service call and event carries the same context:
+Every system call call, service call and event carries the same context:
 
 | Field | Why |
 |-------|-----|
@@ -331,7 +333,7 @@ it), the IDs it is about (`customer_id`, `order_id`, ...), and its data.
 ### 2.7 How a process crosses modules
 
 No module reaches into another. A process that crosses modules is a chain of
-function calls and events, each step done by the module that owns it:
+system call calls and events, each step done by the module that owns it:
 
 | Process | The chain |
 |---------|-----------|
@@ -369,27 +371,27 @@ worked on only through the editor's tools. In the same way:
 
 | Side | What it is | Parts | Code |
 |------|-----------|-------|------|
-| **The platform** | Runs the product, not one business: who you are, which business, what is on, who may do what, and the door the AI comes through | Accounts, log-in, sessions, devices, emails; businesses, members, roles, names (7.7); templates and packs; the function registry; permissions, audit, events, scheduler, approvals, undo, dry run; the AI door (service token, who the AI acts for) and streaming to the app | `platform/`, `modules/core/` |
+| **The platform** | Runs the product, not one business: who you are, which business, what is on, who may do what, and the door the AI comes through | Accounts, log-in, sessions, devices, emails; businesses, members, roles, names (7.7); templates and packs; the system call registry; permissions, audit, events, scheduler, approvals, undo, dry run; the AI door (service token, who the AI acts for) and streaming to the app | `platform/`, `modules/core/` |
 | **The business systems** | The business's own records and rules. Each one stands alone | ERP, CRM, Channels, Store website, Reports (Studio, Marketing and Team in term 2) | `modules/erp/`, `modules/crm/`, ... |
 
 Rules:
 
 1. Each business system stands alone: its own schema, its own database user,
-   its own functions and function pages. It works the same whether a screen, the AI or
+   its own system calls and system call pages. It works the same whether a screen, the AI or
    an outside caller uses it, and it knows nothing about sessions or models
-2. The platform reaches a business system only through its functions. A business
+2. The platform reaches a business system only through its system calls. A business
    system never reads the platform's tables; it gets who is acting and which
    business from the call's context (2.6)
 3. Business systems talk to each other only through events and service calls
    (2.7, 2.8)
 4. Both sides run in **one backend and one database** (2.3). Because the line
-   between them is the functions, any business system can later move into its own
-   program without changing a function
+   between them is the system calls, any business system can later move into its own
+   program without changing a system call
 5. The AI itself (models, skills, the agent) is the AI layer (6). The platform
-   only gives it the door and the functions
+   only gives it the door and the system calls
 
-The two backend members can work one side each; they meet only at the function
-pages in `contracts/functions/`.
+The two backend members can work one side each; they meet only at the system call
+pages in `contracts/syscalls/`.
 
 How every part connects:
 
@@ -405,7 +407,7 @@ flowchart LR
   TG["Telegram"]
   subgraph WEB["Frontend: app-web"]
     STAFF["Staff app<br/>staff/home, chat, cards"]
-    TC["functions-client"]
+    TC["syscalls-client"]
     SHOP["Shop page"]
   end
   subgraph BE["Backend: app-backend, one program"]
@@ -414,8 +416,8 @@ flowchart LR
     PUBDOOR["api/public<br/>rate limits"]
     subgraph PLAT["Platform"]
       WHO["Who and where<br/>auth, context, tenancy"]
-      MAY["May they do it?<br/>permissions, packs, function-registry"]
-      RUN["Run the function<br/>idempotency, audit, outbox"]
+      MAY["May they do it?<br/>permissions, packs, syscall-registry"]
+      RUN["Run the system call<br/>idempotency, audit, outbox"]
     end
     subgraph BIZ["Business systems"]
       CORE["Core"]
@@ -464,10 +466,10 @@ sequenceDiagram
   D->>P: who, which business? (auth, context, tenancy)
   P-->>D: owner of nova
   D->>G: relay, acting for the owner
-  G->>D: api/ai: which functions for him?
+  G->>D: api/ai: which system calls for him?
   D->>P: filter by packs, role, face, AI settings
-  P-->>G: 5 to 15 functions
-  G->>M: message, brain, skill, functions
+  P-->>G: 5 to 15 system calls
+  G->>M: message, brain, skill, system calls
   M-->>G: call reports.get_sales
   G->>D: run reports.get_sales
   D->>P: check again
@@ -496,13 +498,13 @@ checks; only the door differs (cookie for screens, token for the AI).
 
 ---
 
-## 3. The four layers: internal code, functions, skills, model
+## 3. The four layers: internal code, system calls, skills, model
 
 ```mermaid
 flowchart TD
-  M["Model: reads the request, picks a skill or composes functions"]
-  S["Skills: written know-how. Steps, functions, checks, approval points"]
-  T["Functions: what is possible. Published by each module, with their rules"]
+  M["Model: reads the request, picks a skill or composes system calls"]
+  S["Skills: written know-how. Steps, system calls, checks, approval points"]
+  T["System calls: what is possible. Published by each module, with their rules"]
   F["Internal code: the modules' own code. Nobody outside sees them"]
   M --> S
   S --> T
@@ -512,16 +514,16 @@ flowchart TD
 
 | Layer | What it is | How many | Who writes it | Changing it |
 |-------|------------|----------|---------------|-------------|
-| Internal code | Each module's services and data | Hundreds | Backend | Free, as long as the functions stay the same |
-| **Functions** | The business's API, in business words | About 150 in total; 5 to 15 loaded for one task | Each module's team, agreed in the contracts | **Rare and careful.** The model is trained on them |
+| Internal code | Each module's services and data | Hundreds | Backend | Free, as long as the system calls stay the same |
+| **System calls** | The business's API, in business words | About 150 in total; 5 to 15 loaded for one task | Each module's team, agreed in the contracts | **Rare and careful.** The model is trained on them |
 | **Skills** | Written playbooks | As many as needed | The team, the templates, the owner, and the AI (with approval) | **Free.** They are text, so no retraining |
-| Model | Our tuned models by default; the owner may pick another (6.2) | The AI team decides (two tiers proposed) | AI team | Retrain and re-test; any model uses the same functions and skills |
+| Model | Our tuned models by default; the owner may pick another (6.2) | The AI team decides (two tiers proposed) | AI team | Retrain and re-test; any model uses the same system calls and skills |
 
-**Functions decide what the AI can do. Skills decide what it knows how to do well.**
-A skill can never do more than its functions allow, and a function can never do more
+**System calls decide what the AI can do. Skills decide what it knows how to do well.**
+A skill can never do more than its system calls allow, and a system call can never do more
 than the person the AI serves is allowed to do.
 
-The same functions serve three callers:
+The same system calls serve three callers:
 
 | Caller | How it calls | Sees |
 |--------|--------------|------|
@@ -531,12 +533,12 @@ The same functions serve three callers:
 
 ---
 
-## 4. Functions
+## 4. System calls
 
-### 4.1 What a function is
+### 4.1 What a system call is
 
-A function is one action a module offers, in business words, with its rules
-attached. Every function is one entry in the contracts:
+A system call is one action a module offers, in business words, with its rules
+attached. Every system call is one entry in the contracts:
 
 | Field | Example (`erp.change_price`) |
 |-------|-------------------------------|
@@ -552,34 +554,34 @@ attached. Every function is one entry in the contracts:
 | Faces | Owner only |
 | Examples | Become test cases and training data |
 
-### 4.2 How the AI finds and loads functions
+### 4.2 How the AI finds and loads system calls
 
 - The full list is long (about 150) and can keep growing. The number is not a
   limit, the same way the number of functions in a library is not: each module
   and each pack adds its own, and the model never loads all of them
-- A skill names the functions it needs, so one task loads 5 to 15
-- When no skill fits, the AI calls `ai.find_functions` with what it wants to do and
+- A skill names the system calls it needs, so one task loads 5 to 15
+- When no skill fits, the AI calls `ai.find_syscalls` with what it wants to do and
   gets the few that match, already filtered for this person
-- Each loaded function is filtered three times: the business's packs (section 7.3),
+- Each loaded system call is filtered three times: the business's packs (section 7.3),
   the person's role, and the face (customer or owner)
 
-### 4.3 Rules for building functions
+### 4.3 Rules for building system calls
 
-1. One function does one thing, and its output feeds the next function (IDs, numbers)
+1. One system call does one thing, and its output feeds the next system call (IDs, numbers)
 2. The same names everywhere: a `customer_id` from CRM is what Marketing takes
 3. Reads are free and can run in parallel; writes go into a plan (section 6.5)
 4. Every write has a retry key and an undo, or a matching action that reverses it
-5. Exact data (prices, stock, totals) only ever comes from a function result
+5. Exact data (prices, stock, totals) only ever comes from a system call result
 6. A new ability is usually a new skill; then a new action on an existing area;
-   a new function only when neither works
+   a new system call only when neither works
 
-### 4.4 Every function is documented in full, and the backend keeps its word
+### 4.4 Every system call is documented in full, and the backend keeps its word
 
-The function reference is what everyone builds on: the frontend, the AI team, the
+The system call reference is what everyone builds on: the frontend, the AI team, the
 training data, and in term 2 developers outside the team. Anyone must be able to
-use a function from its page alone, without reading the backend's code or asking.
+use a system call from its page alone, without reading the backend's code or asking.
 
-**Each function's page has:**
+**Each system call's page has:**
 
 | Part | What it says |
 |------|--------------|
@@ -595,9 +597,9 @@ use a function from its page alone, without reading the backend's code or asking
 **The backend's promise:**
 
 1. The page and the code never differ. The page is written first, the backend
-   builds to it, and an automatic test checks every function against its page
-2. A published function never changes in a way that breaks a caller. Adding is
-   allowed: a new optional input, a new output field, a new function
+   builds to it, and an automatic test checks every system call against its page
+2. A published system call never changes in a way that breaks a caller. Adding is
+   allowed: a new optional input, a new output field, a new system call
 3. A breaking change (renaming an input, removing a field, changing what a call
    does) is a **new version**. The old version keeps working for at least one
    term and is marked as old on its page
@@ -606,12 +608,12 @@ use a function from its page alone, without reading the backend's code or asking
 5. The backend is responsible for this. A change that breaks a caller without a
    new version is a bug, and it is fixed by restoring the old behaviour
 
-### 4.5 Outside functions
+### 4.5 Outside system calls
 
-Outside services are functions too, published by an adapter in the module that owns
+Outside services are system calls too, published by an driver in the module that owns
 them:
 
-| Outside service | Adapter lives in | Term |
+| Outside service | Driver lives in | Term |
 |-----------------|------------------|:----:|
 | Telegram, website chat | Channels | 1 |
 | WhatsApp, Instagram, Facebook (messages and posts) | Channels | 2 (WhatsApp in term 1 if Meta approves) |
@@ -638,7 +640,7 @@ write, what to show, where approval is needed, and what to check.
 skill: create_post_image
 when: a post needs an image, or the owner asks for one
 needs: [studio]
-functions: erp.get_item, studio.get_brand_kit, studio.list_templates,
+system calls: erp.get_item, studio.get_brand_kit, studio.list_templates,
        studio.render_design, studio.save_design, ai.ask_approval
 steps:
   1 read:   erp.get_item(iced spanish latte) -> name, price, photo
@@ -676,9 +678,9 @@ The AI writes it as a skill and asks the owner to confirm.
 
 ### 5.4 What a skill can never change
 
-These live in the functions and the policy, not in skills:
+These live in the system calls and the policy, not in skills:
 
-- Prices and numbers always come from functions
+- Prices and numbers always come from system calls
 - Permissions and roles
 - Approval rules (only the owner's limits in Settings change them)
 - Consent before any marketing message
@@ -706,7 +708,7 @@ code editor. So:
   layer loads them for whichever model runs
 - Changing the model never changes the skills, and changing a skill never
   needs retraining
-- A skill names functions only; it never depends on one model's tricks. Every core
+- A skill names system calls only; it never depends on one model's tricks. Every core
   and template skill is tested with our tuned models, and the scores of other
   models are recorded (24)
 
@@ -736,8 +738,8 @@ Like an AI code editor, the app has a **model picker**:
 
 Rules for every model, ours or not:
 
-- The same functions, skills, permissions (6.6), policy gate and audit. A model
-  never gets more than the functions allow, so changing the model never changes
+- The same system calls, skills, permissions (6.6), policy gate and audit. A model
+  never gets more than the system calls allow, so changing the model never changes
   what the AI may do
 - A commercial model sends the business's data to the company that runs it,
   and it costs money per use. The picker says both clearly before the owner
@@ -756,12 +758,12 @@ their sizes and how many tiers.
 
 | Tier | Size (the AI team decides) | Used for | Why |
 |------|-------------------------|----------|-----|
-| **Small** | About 4B | Customer agent | Fast replies on chat; few functions (the customer face loads at most 10) |
+| **Small** | About 4B | Customer agent | Fast replies on chat; few system calls (the customer face loads at most 10) |
 | **Big** | About 50B | Owner partner, jobs, planning, hard customer cases passed up by the policy gate | Better reasoning and multi-step plans |
 
 On Auto, routing between the tiers is automatic. Both are open base
 models the team fine-tunes to manage a small business in Egyptian Arabic, Franco
-and English through functions. They adapt to any category: the category comes from
+and English through system calls. They adapt to any category: the category comes from
 the template, the skills and the business brain, not from retraining.
 
 ### 6.3 How every message is handled
@@ -770,11 +772,11 @@ the template, the skills and the business brain, not from retraining.
 flowchart TD
   M["Message in: customer or staff"] --> CTX["Context: business brain, memory, thread, who is asking"]
   CTX --> SKL{"A skill fits?"}
-  SKL -->|yes| LOAD["Load the skill and its functions"]
-  SKL -->|no| FIND["ai.find_functions: load the few that match"]
+  SKL -->|yes| LOAD["Load the skill and its system calls"]
+  SKL -->|no| FIND["ai.find_syscalls: load the few that match"]
   LOAD & FIND --> MD{"Model"}
-  MD -->|function call| GATE{"Policy gate"}
-  GATE -->|read| RUN["Run the function"]
+  MD -->|system call call| GATE{"Policy gate"}
+  GATE -->|read| RUN["Run the system call"]
   GATE -->|write| PLAN["Add to the plan"]
   GATE -->|outside rules or unsure| HO["Hand off to staff"]
   RUN -->|result| MD
@@ -795,7 +797,7 @@ Every answer reads:
 3. **Memory:** what the owner decided before ("no delivery after 11", "stop
    selling the blueberry muffin")
 4. **Skills:** the list of skills, each with only its name and when to use it
-5. **Live data:** only through functions, never from memory
+5. **Live data:** only through system calls, never from memory
 
 ### 6.5 The planner
 
@@ -804,12 +806,12 @@ Every answer reads:
 - The owner approves **once per plan**, not once per step
 - The planner runs the writes, then reads again to check the result
 - If a step fails, it stops, says what was done, and offers to undo it or finish it
-- Limits: a maximum number of steps per task; stop if the same function fails twice
+- Limits: a maximum number of steps per task; stop if the same system call fails twice
 - Every step is in the AI action log, with its undo
 
 ### 6.6 How much the AI does alone
 
-The owner decides what the AI may do, per area or per function, with one of three
+The owner decides what the AI may do, per area or per system call, with one of three
 settings:
 
 | Setting | What happens |
@@ -848,7 +850,7 @@ Rules that no setting changes:
 - A customer confirms their own order; that is the customer's approval, not the
   owner's, and it never covers anything else
 - The customer face has no settings to change: it only ever has its own
-  limited functions
+  limited system calls
 - Actions that cannot be fully undone (a message sent, a post seen, money paid)
   start at ask first
 
@@ -864,23 +866,23 @@ is written to the audit log with `actor_type = ai`.
 
 ### 6.8 Guardrails
 
-1. Exact data (prices, stock, totals) only from functions, never from memory or the model
-2. Functions follow the business's packs, the person's role, the face, and the
+1. Exact data (prices, stock, totals) only from system calls, never from memory or the model
+2. System calls follow the business's packs, the person's role, the face, and the
    owner's settings for the AI (6.6)
 3. Risky actions wait for approval; a large action split into small ones is the
    same action
 4. It asks when unsure ("which Mariam?")
-5. It hands off on complaints it cannot solve, requests for a human, a function
+5. It hands off on complaints it cannot solve, requests for a human, a system call
    failing twice, and messages that try to change its rules
 6. Customer messages are data, never instructions
 7. Personal data is masked in logs and training data
 8. Measured on a test set, rerun after every change
 
-### 6.9 The AI layer's own functions
+### 6.9 The AI layer's own system calls
 
-| Function | Does |
+| System call | Does |
 |------|------|
-| `ai.find_functions` | Finds the functions that match a task, filtered for this person |
+| `ai.find_syscalls` | Finds the system calls that match a task, filtered for this person |
 | `ai.load_skill` | Loads a skill's full steps |
 | `ai.search_knowledge` | Searches the business's FAQs and policies |
 | `ai.remember` | Saves a decision to memory, after the owner confirms |
@@ -900,20 +902,20 @@ is written to the audit log with `actor_type = ai`.
 - **Candidates to compare** (check for newer versions first): a strong
   tool-using family (for example Qwen3) and an Egyptian-dialect model (for
   example Nile-Chat), for each tier
-- **What training teaches:** choosing and filling functions; following a skill;
-  composing functions when no skill fits; planning; handing off; replying in the
+- **What training teaches:** choosing and filling system calls; following a skill;
+  composing system calls when no skill fits; planning; handing off; replying in the
   customer's dialect
 - **Training data:**
 
 | Source | What |
 |--------|------|
-| Open Arabic tool-use datasets | Arabic and Egyptian requests mapped to function calls |
-| Open general tool-use datasets | The skill of choosing and filling functions |
+| Open Arabic tool-use datasets | Arabic and Egyptian requests mapped to system call calls |
+| Open general tool-use datasets | The skill of choosing and filling system calls |
 | Our hand-written examples | Coffee shop and small market conversations and skill runs |
 | Shop visits and pilots | Real requests and messages, cleaned and anonymized, from shops that agreed |
 
-- **One training example** = the request, the skill if any, the function calls with
-  their inputs, the function results, and the final answer. Personal data removed.
+- **One training example** = the request, the skill if any, the system call calls with
+  their inputs, the system call results, and the final answer. Personal data removed.
   The format is part of the contracts, shared by the agent and the model
 - **Never train on the test set.** The `small_market` cases stay out of training
   for the adaptation score
@@ -923,12 +925,12 @@ are tuned. The rest of the team's job is to give them what they need:
 
 | What they get | From |
 |---------------|------|
-| Every function's description, inputs, outputs and examples, in a standard format the model server reads | Contracts |
+| Every system call's description, inputs, outputs and examples, in a standard format the model server reads | Contracts |
 | The training example format | Contracts |
-| A fake backend that answers every function from demo data, so they can record conversations and run the test set without the real backend | Backend |
+| A fake backend that answers every system call from demo data, so they can record conversations and run the test set without the real backend | Backend |
 | Demo businesses: an invented coffee shop and small market with realistic data | Backend |
 | A dry-run mode: run a skill with no real writes | Backend |
-| The AI action log: every function call, its result, the approval, and the owner's corrections, anonymized, as new training and test data | Backend |
+| The AI action log: every system call call, its result, the approval, and the owner's corrections, anonymized, as new training and test data | Backend |
 | One stable door for the agent (the AI API), with the service token and who it acts for | Backend |
 
 ### 6.11 Serving
@@ -939,9 +941,9 @@ settings, not code. If the model does not answer in time, the AI sends a short
 holding message or hands off.
 
 Other models in the picker (6.2) sit behind a model adapter, like any outside
-service. The adapter turns the function reference into each model's tool format
-and back, so the functions, skills and policy gate stay the same for every model.
-Adding a model is a new adapter setting, never a change to functions or skills.
+service. The adapter turns the system call reference into each model's tool format
+and back, so the system calls, skills and policy gate stay the same for every model.
+Adding a model is a new adapter setting, never a change to system calls or skills.
 
 ---
 
@@ -1073,10 +1075,10 @@ Templates turn on their packs by default; the owner can change any of them:
 **How a pack works:**
 
 1. Each pack is one file in the contracts: its key, its module, what it needs,
-   its functions, its windows and sections, its skills, its event listeners, its
+   its system calls, its windows and sections, its skills, its event listeners, its
    settings, and a setup skill
-2. **One switch for everything.** The pack is the capability: a function's
-   capability field names its pack. When a pack is off, its functions do not exist
+2. **One switch for everything.** The pack is the capability: a system call's
+   capability field names its pack. When a pack is off, its system calls do not exist
    for that business, its windows and sidebar items hide, its skills are not
    offered, and its listeners do nothing
 3. **Events still flow.** ERP always emits `OrderCompleted`; if `loyalty` is off,
@@ -1113,9 +1115,9 @@ not part of this design yet.
 **Emits:** `BusinessCreated`, `MemberInvited`, `MemberJoined`, `RoleChanged`,
 `PackTurnedOn`, `PackTurnedOff`
 
-### 7.5 Core functions
+### 7.5 Core system calls
 
-| Function | Does | R/W | Approval | Customer |
+| System call | Does | R/W | Approval | Customer |
 |------|------|:---:|----------|:--------:|
 | `core.get_business` | Profile, hours, location, delivery areas | R | | yes |
 | `core.update_business` | Hours, settings, profile | W | | |
@@ -1314,14 +1316,14 @@ person's job. The AI reminds and reports.
 
 **Never does:** write to another module's tables, or send messages. It emits events.
 
-### 8.5 ERP functions
+### 8.5 ERP system calls
 
-R/W is read or write. **Customer** marks the functions the customer face gets,
+R/W is read or write. **Customer** marks the system calls the customer face gets,
 limited as written. T2 marks term 2.
 
 **Catalog**
 
-| Function | Does | R/W | Approval | Customer |
+| System call | Does | R/W | Approval | Customer |
 |------|------|:---:|----------|:--------:|
 | `erp.search_items` | Search the menu by name, category, available now | R | | yes |
 | `erp.get_item` | Item with sizes, options, price, photo, and its cost if the role allows | R | | without cost |
@@ -1335,7 +1337,7 @@ limited as written. T2 marks term 2.
 
 **Recipes and costs**
 
-| Function | Does | R/W | Approval | Customer |
+| System call | Does | R/W | Approval | Customer |
 |------|------|:---:|----------|:--------:|
 | `erp.list_ingredients` | Ingredients with unit and cost | R | | |
 | `erp.create_ingredient` | New ingredient | W | | |
@@ -1347,7 +1349,7 @@ limited as written. T2 marks term 2.
 
 **Stock**
 
-| Function | Does | R/W | Approval | Customer |
+| System call | Does | R/W | Approval | Customer |
 |------|------|:---:|----------|:--------:|
 | `erp.get_stock_levels` | Levels; filter low, expiring, by branch | R | | |
 | `erp.get_stock_history` | Movements for one ingredient or product | R | | |
@@ -1359,7 +1361,7 @@ limited as written. T2 marks term 2.
 
 **Orders and sales**
 
-| Function | Does | R/W | Approval | Customer |
+| System call | Does | R/W | Approval | Customer |
 |------|------|:---:|----------|:--------:|
 | `erp.create_order` | Pickup, delivery or dine-in order | W | discount above the limit | yes |
 | `erp.record_counter_sale` | Sale created and paid in one step | W | | |
@@ -1372,7 +1374,7 @@ limited as written. T2 marks term 2.
 
 **Payments**
 
-| Function | Does | R/W | Approval | Customer |
+| System call | Does | R/W | Approval | Customer |
 |------|------|:---:|----------|:--------:|
 | `erp.record_payment` | Cash, card, wallet, on account | W | | |
 | `erp.list_payments` | By period, method, shift | R | | |
@@ -1380,7 +1382,7 @@ limited as written. T2 marks term 2.
 
 **Shifts and cash**
 
-| Function | Does | R/W | Approval | Customer |
+| System call | Does | R/W | Approval | Customer |
 |------|------|:---:|----------|:--------:|
 | `erp.get_shift` | The open shift: expected cash so far | R | | |
 | `erp.list_shifts` | Past shifts with gaps | R | | |
@@ -1388,7 +1390,7 @@ limited as written. T2 marks term 2.
 
 **Suppliers and purchasing**
 
-| Function | Does | R/W | Approval | Customer |
+| System call | Does | R/W | Approval | Customer |
 |------|------|:---:|----------|:--------:|
 | `erp.list_suppliers` | Suppliers and what they supply | R | | |
 | `erp.get_supplier` | Prices, history, delivery days | R | | |
@@ -1403,7 +1405,7 @@ limited as written. T2 marks term 2.
 
 **Credit accounts (small market)**
 
-| Function | Does | R/W | Approval | Customer |
+| System call | Does | R/W | Approval | Customer |
 |------|------|:---:|----------|:--------:|
 | `erp.get_credit_account` | Balance, limit, history | R | | own balance |
 | `erp.list_debts` | Due and overdue | R | | |
@@ -1413,7 +1415,7 @@ limited as written. T2 marks term 2.
 
 **Money**
 
-| Function | Does | R/W | Approval | Customer |
+| System call | Does | R/W | Approval | Customer |
 |------|------|:---:|----------|:--------:|
 | `erp.record_expense` | Rent, salaries, bills, with a receipt photo | W | | |
 | `erp.list_expenses` | By period and category | R | | |
@@ -1480,11 +1482,11 @@ a follow-up ("ask Mariam tomorrow if the new order was right").
 create by phone, Telegram ID, handle), `get_customer_ref(customer_id)` (exists,
 name, follows `merged_into`)
 
-### 9.5 CRM functions
+### 9.5 CRM system calls
 
 **Customers**
 
-| Function | Does | R/W | Approval | Customer |
+| System call | Does | R/W | Approval | Customer |
 |------|------|:---:|----------|:--------:|
 | `crm.find_customer` | By name or phone | R | | |
 | `crm.get_customer` | Full view: history, usual order, points, notes, open cases | R | | self only |
@@ -1497,7 +1499,7 @@ name, follows `merged_into`)
 
 **Engagement**
 
-| Function | Does | R/W | Approval | Customer |
+| System call | Does | R/W | Approval | Customer |
 |------|------|:---:|----------|:--------:|
 | `crm.add_note` | Note on a customer | W | | |
 | `crm.tag_customer` | Add or remove tags | W | | |
@@ -1505,7 +1507,7 @@ name, follows `merged_into`)
 
 **Loyalty**
 
-| Function | Does | R/W | Approval | Customer |
+| System call | Does | R/W | Approval | Customer |
 |------|------|:---:|----------|:--------:|
 | `crm.get_loyalty` | Points, tier, next reward | R | | self |
 | `crm.add_points` | Add points with a reason | W | above a limit | |
@@ -1514,7 +1516,7 @@ name, follows `merged_into`)
 
 **Support**
 
-| Function | Does | R/W | Approval | Customer |
+| System call | Does | R/W | Approval | Customer |
 |------|------|:---:|----------|:--------:|
 | `crm.open_case` | Complaint or request, linked to the order and the chat | W | | yes |
 | `crm.get_case` | Status and history | R | | own |
@@ -1526,7 +1528,7 @@ name, follows `merged_into`)
 
 **Bookings** (basic in term 1, full in term 2)
 
-| Function | Does | R/W | Approval | Customer |
+| System call | Does | R/W | Approval | Customer |
 |------|------|:---:|----------|:--------:|
 | `crm.check_availability` | Free times for a party size | R | | yes |
 | `crm.create_booking` | Book, with an optional deposit | W | | yes |
@@ -1536,7 +1538,7 @@ name, follows `merged_into`)
 
 **Segments and consent** (term 2)
 
-| Function | Does | R/W | Approval | Customer |
+| System call | Does | R/W | Approval | Customer |
 |------|------|:---:|----------|:--------:|
 | `crm.create_segment` | Saved filter: "Tuesday regulars" | W | | |
 | `crm.list_segment_members` | Who is in it | R | | |
@@ -1568,20 +1570,20 @@ auto_reply       id, business_id, channel_account_id, kind(away|hours|greeting),
                  body, schedule(jsonb), active
 ```
 
-- One normalized message shape, one adapter per channel
+- One normalized message shape, one driver per channel
 - Webhook, then queue, then process; duplicates are ignored
 - **Order of channels:** website chat and Telegram first (no outside approval),
   WhatsApp as soon as Meta approves, Instagram and Facebook later
-- Social posts are published through the same adapters, for Studio
+- Social posts are published through the same drivers, for Studio
 - Voice notes are transcribed; images are kept for the AI (menu photos, receipts)
 
 **Emits:** `MessageReceived`, `MessageSent`, `ConversationHandedOff`,
 `PostPublished`
 **Consumes:** `OrderCreated` (confirmation), `OrderReady` (tell the customer)
 
-### 10.2 Channels functions
+### 10.2 Channels system calls
 
-| Function | Does | R/W | Approval | Customer |
+| System call | Does | R/W | Approval | Customer |
 |------|------|:---:|----------|:--------:|
 | `channels.list_conversations` | Open, waiting, by channel, handled by AI or staff | R | | |
 | `channels.get_conversation` | Messages and state | R | | own |
@@ -1634,9 +1636,9 @@ review           id, business_id, source, rating, body, reply, replied_at (term 
 
 **Emits:** `SitePublished`, `ReviewReceived`
 
-### 11.4 Store functions
+### 11.4 Store system calls
 
-| Function | Does | R/W | Approval | Customer |
+| System call | Does | R/W | Approval | Customer |
 |------|------|:---:|----------|:--------:|
 | `store.get_site` | Pages, sections, theme, what is published | R | | |
 | `store.update_page` | Edit a page or section | W | public | |
@@ -1672,14 +1674,14 @@ Images are made in two steps:
 
 1. **Templates first:** the brand kit, the shop's own photos and design
    templates. Reliable, cheap, and Arabic text is placed correctly
-2. **An open image model second** (outside function through the Studio adapter):
+2. **An open image model second** (outside system call through the Studio driver):
    backgrounds and product shots. The text is still placed by the template
 
 **Emits:** `PostScheduled`
 
-### 12.2 Studio functions
+### 12.2 Studio system calls
 
-| Function | Does | R/W | Approval | Customer |
+| System call | Does | R/W | Approval | Customer |
 |------|------|:---:|----------|:--------:|
 | `studio.get_brand_kit` | Colours, fonts, logo, voice | R | | |
 | `studio.update_brand_kit` | Change the brand kit | W | always | |
@@ -1712,9 +1714,9 @@ offer, so every campaign reports money earned.
 
 **Emits:** `OfferStarted`, `CampaignSent`
 
-### 13.2 Marketing functions
+### 13.2 Marketing system calls
 
-| Function | Does | R/W | Approval | Customer |
+| System call | Does | R/W | Approval | Customer |
 |------|------|:---:|----------|:--------:|
 | `marketing.list_offers` | Current and past offers | R | | current only |
 | `marketing.create_offer` | Discount or bundle with dates and hours | W | discount above the limit | |
@@ -1743,9 +1745,9 @@ task             id, business_id, assigned_to, title, due_at, status, created_by
 
 **Emits:** `ShiftMissed`, `TaskOverdue`
 
-### 14.2 Team functions
+### 14.2 Team system calls
 
-| Function | Does | R/W | Approval | Customer |
+| System call | Does | R/W | Approval | Customer |
 |------|------|:---:|----------|:--------:|
 | `team.list_staff` | Staff, roles, availability | R | | |
 | `team.get_rota` | Who works when | R | | |
@@ -1767,9 +1769,9 @@ task             id, business_id, assigned_to, title, due_at, status, created_by
 - Feeds the app, the morning briefing and the AI
 - Read only
 
-### 15.1 Reports functions
+### 15.1 Reports system calls
 
-| Function | Does | R/W |
+| System call | Does | R/W |
 |------|------|:---:|
 | `reports.get_sales` | Totals by period, grouped by item, hour, staff, channel | R |
 | `reports.get_profit` | Sales minus recipe cost minus expenses | R |
@@ -1781,10 +1783,10 @@ task             id, business_id, assigned_to, title, due_at, status, created_by
 
 ## 16. Skills catalog
 
-The core and template skills, A to Z. Each lists the functions it uses; the AI
+The core and template skills, A to Z. Each lists the system calls it uses; the AI
 loads only those.
 
-| Skill | What it does | Main functions | Term |
+| Skill | What it does | Main system calls | Term |
 |-------|--------------|------------|:----:|
 | `add_item_by_talking` | "Add iced latte, 75 pounds, same recipe as latte plus ice" | `erp.create_item`, `erp.set_recipe`, `erp.get_item_cost` | 1 |
 | `answer_customer` | Menu, prices, hours, location, delivery areas | `core.get_business`, `erp.search_items`, `ai.search_knowledge` | 1 |
@@ -1852,7 +1854,7 @@ offered only when the packs it needs are on.
 - The **model picker** sits under the chat box, next to **Ask first / Act
   alone**: Auto (our models, tiers picked automatically) by default, or another
   model the owner picks (6.2)
-- Answers stream: text first, cards when functions return
+- Answers stream: text first, cards when system calls return
 - The AI answers only with the app's own cards (order, item, stock, customer,
   cash, sales, approval, plan, post); an unknown card shows its plain text
 - Arabic right-to-left and mobile from day one
@@ -1907,7 +1909,7 @@ What each role sees (draft; Security decides):
 
 | Window | Owner | Manager | Staff | Viewer |
 |--------|:-----:|:-------:|:-----:|:------:|
-| Home: AI chat | all functions | most functions | sales, stock and how-to only | read-only answers |
+| Home: AI chat | all system calls | most system calls | sales, stock and how-to only | read-only answers |
 | Sales screen, Orders | yes | yes | yes | view |
 | Menu and stock | yes | yes | stock and waste only | view |
 | Customers, Inbox | yes | yes | Inbox only | view |
@@ -2007,7 +2009,7 @@ sales screen calls `erp.record_counter_sale`; stock is deducted and
 ## 19. Security
 
 - Login with strong passwords, sessions, and lock-out after repeated failures
-- Roles from data, not code; every function checks them, for the app and the AI alike
+- Roles from data, not code; every system call checks them, for the app and the AI alike
 - Row-level security on every business table, plus tests that try to cross
   businesses
 - Each module's database user sees only its own schema; the AI layer sees none
@@ -2017,7 +2019,7 @@ sales screen calls `erp.record_counter_sale`; stock is deducted and
   never do what the person it serves is not allowed to do; skills cannot change
   permissions or approvals
 - Public website and chat: limits against spam and fake orders
-- Outside API keys (term 2) scoped per business and per function area
+- Outside API keys (term 2) scoped per business and per system call area
 - No secrets in the repository
 - **The browser gets only what the screen shows.** No internal IDs (a business
   is named by its handle, a person by `username@handle`), no reason text in
@@ -2041,7 +2043,7 @@ flowchart LR
   EXT["Telegram, Meta, Google"] --> HOOK["api.domain/webhooks"]
   subgraph SRV["Our server"]
     WEB["web: app, shop pages, landing"]
-    API["backend: functions, events, scheduler"]
+    API["backend: system calls, events, scheduler"]
     AGT["AI layer"]
     PG[("PostgreSQL")]
   end
@@ -2111,14 +2113,14 @@ keeps its own copy.
 ```
 app-backend/
 ├── README.md                           what it is, how work happens, the other repos
-├── rules/                              one page each: architecture, modules, functions, events, contracts
+├── rules/                              one page each: architecture, modules, system calls, events, contracts
 ├── contracts/                          written once, read by every repo (4.4)
-│   ├── functions/                          one reference page per function, one folder per module
+│   ├── system calls/                          one reference page per system call, one folder per module
 │   │   ├── core/  erp/  crm/  channels/  store/
 │   │   ├── studio/  marketing/  team/  reports/  ai/
 │   │   └── (each page: purpose, inputs, output, errors, effects, rules, examples, changes)
 │   ├── packs/                          the essentials and one page per pack (7.3): module, needs,
-│   │                                   functions, windows, skills, listeners, settings, setup skill
+│   │                                   system calls, windows, skills, listeners, settings, setup skill
 │   ├── events/                         the envelope (2.6) and one page per event
 │   ├── cards/                          order, item, stock, customer, cash, sales, approval, plan, post
 │   ├── values/                         IDs, money, order statuses, roles, channels, payment methods,
@@ -2126,7 +2128,7 @@ app-backend/
 │   ├── errors/                         error codes
 │   ├── limits/                         password, code expiry, lock-out, upload size, rate limits
 │   ├── training/                       training example format (the AI team owns it)
-│   └── changes/                        every change to a function, event or card, announced before merging
+│   └── changes/                        every change to a system call, event or card, announced before merging
 ├── config/                             settings read once at start; example settings file only
 ├── templates/                          coffee-shop, small-market: packs on, fields, stages,
 │                                       home items, AI defaults, template skills
@@ -2137,23 +2139,23 @@ app-backend/
 ├── platform/
 │   ├── tenancy                         every call inside one business (row-level security)
 │   ├── auth                            sign up, log in, sessions, lock-out
-│   ├── permissions                     one check for every function: role, pack, face, AI setting
+│   ├── permissions                     one check for every system call: role, pack, face, AI setting
 │   ├── packs                           essentials and packs on for this business; needs, on, off
-│   ├── function-registry                   loads the function pages; filters by pack, role, face
+│   ├── syscall-registry                   loads the system call pages; filters by pack, role, face
 │   ├── context                         business, actor, correlation ID, retry key on every call (2.6)
 │   ├── audit                           audit row on every write
 │   ├── events                          outbox, dispatcher, retries, listener registry
 │   ├── scheduler                       time-based events: expiring stock, quiet regulars,
 │   │                                   morning briefing, scheduled posts
 │   ├── idempotency                     retried calls write once
-│   ├── undo                            runs a function's undo from the audit log
-│   ├── dry-run                         runs functions with no real writes, for skill test runs
+│   ├── undo                            runs a system call's undo from the audit log
+│   ├── dry-run                         runs system calls with no real writes, for skill test runs
 │   ├── numbering                       #1042 per business
 │   ├── money                           whole piastres plus currency
 │   ├── errors                          error codes, never message text
 │   ├── streaming                       relays the AI's streamed answer to the app
 │   └── realtime                        live updates: orders board, inbox, stock
-├── api/                                one function API, four doors (section 3)
+├── api/                                one system call API, four doors (section 3)
 │   ├── app/                            logged-in members (session); relays owner chat to the AI
 │   ├── ai/                             the AI layer (service token plus who it acts for)
 │   ├── public/                         shop pages, chat widget, channel webhooks; rate limits
@@ -2172,7 +2174,7 @@ app-backend/
 │   │   ├── purchasing/                 suppliers, purchase orders, receiving
 │   │   ├── credit/                     customer debts
 │   │   ├── expenses/
-│   │   └── adapters/                   payments, couriers (term 2)
+│   │   └── drivers/                   payments, couriers (term 2)
 │   ├── crm/
 │   │   ├── customers/                  customers, stats cache, usual order, merge and forget
 │   │   ├── identities/                 resolve identity, phone to +20, merge suggestions
@@ -2187,27 +2189,27 @@ app-backend/
 │   │   ├── conversations/              AI or staff, take over, hand back, tags
 │   │   ├── messages/                   one message shape
 │   │   ├── auto-replies/               away, opening hours, greeting
-│   │   └── adapters/                   website chat, Telegram; WhatsApp, Instagram, Facebook later
+│   │   └── drivers/                   website chat, Telegram; WhatsApp, Instagram, Facebook later
 │   ├── store/
 │   │   ├── site/                       shop page, pages, banner, menu display, public ordering
 │   │   ├── search-presence/            descriptions, structured data, score, reviews (term 2)
-│   │   └── adapters/                   Google business profile and reviews (term 2)
+│   │   └── drivers/                   Google business profile and reviews (term 2)
 │   ├── studio/                         brand kit, design templates, render, designs, posts
-│   │   └── adapters/                   image model (term 2)
+│   │   └── drivers/                   image model (term 2)
 │   ├── marketing/                      offers, campaigns, sends (term 2)
 │   ├── team/                           staff profiles, rota, attendance, tasks (term 2)
 │   └── reports/                        summary tables from events
-│   (each area: functions as its only public face, service, data, listeners, tests)
-├── fake/                               answers every function from its page's examples and the
+│   (each area: system calls as its only public face, service, data, listeners, tests)
+├── fake/                               answers every system call from its page's examples and the
 │                                       demo businesses, for the frontend and the AI team (6.10)
 └── tests/
     ├── isolation                       business A reads business B: must fail
     ├── schema-users                    each module's database user sees only its schema
-    ├── roles                           each role against each function
-    ├── functions                           each function: allowed, refused by role, by pack, by face
-    ├── pages                           each function behaves exactly as its reference page says
+    ├── roles                           each role against each system call
+    ├── system calls                           each system call: allowed, refused by role, by pack, by face
+    ├── pages                           each system call behaves exactly as its reference page says
     ├── packs                           essentials alone, each template, each pack with its needs
-    ├── undo                            every write function's undo puts things back
+    ├── undo                            every write system call's undo puts things back
     ├── order-flow                      every allowed and refused order move
     ├── processes                       each cross-module process (2.7) end to end
     └── rebuild                         stock levels and customer stats rebuilt from history
@@ -2223,7 +2225,7 @@ app-web/
 │   ├── chat/                           message list, streaming, input box, + menu, threads,
 │   │                                   plan and approval cards
 │   ├── layout/                         sidebar (by role and packs), side panel for opened cards
-│   ├── functions-client/                   calls the backend's functions; the only way to the data
+│   ├── syscalls-client/                   calls the backend's system calls; the only way to the data
 │   ├── i18n/                           Arabic and English (Arabic first, right to left)
 │   └── tokens/                         colours, spacing, fonts
 ├── staff/                              windows 1 to 12 (section 17.2)
@@ -2246,15 +2248,15 @@ app-ai-agent/
 ├── jobs/                               scheduled and event-driven work
 ├── planner/                            plans, approval per plan, running, checking, undo
 ├── skills/                             core skills
-├── functions/                              function loading, find_functions
+├── system calls/                              system call loading, find_syscalls
 ├── model/                              talking to the models
 ├── policy/                             permission settings (6.6), hand-off triggers, injection checks
 ├── brain/                              profile, knowledge, memory, threads
 ├── approvals/
 ├── log/                                AI action log, masking
 └── tests/
-    ├── fakes/                          fake model and fake functions built from the function pages' examples
-    ├── conversations/                  scripted conversations with the expected function calls
+    ├── fakes/                          fake model and fake system calls built from the system call pages' examples
+    ├── conversations/                  scripted conversations with the expected system call calls
     └── injection/                      prompt-injection cases
 ```
 
@@ -2282,8 +2284,8 @@ shows a better choice. The AI side is the AI team's choice.
 | Shop pages and landing | Astro |
 | Backend | TypeScript on Node 22, Fastify, Kysely, plain SQL migrations per module schema |
 | Database | PostgreSQL 16, row-level security, pg-boss for the outbox and jobs |
-| Contracts | JSON Schema per function, event and card; OpenAPI generated from them |
-| Security | argon2id passwords, sessions in secure cookies (sessions or tokens is still open, 26), roles checked on every function call, rate limits, dependency and secret scanning in CI |
+| Contracts | JSON Schema per system call, event and card; OpenAPI generated from them |
+| Security | argon2id passwords, sessions in secure cookies (sessions or tokens is still open, 26), roles checked on every system call call, rate limits, dependency and secret scanning in CI |
 | Tests | Vitest, a real PostgreSQL in a container, Playwright for the app |
 
 Each subteam can change its own tools as long as the contracts between parts
@@ -2294,9 +2296,9 @@ hold. Things that shaped the choice:
 - The planner and the jobs need durable workflows that survive restarts; the AI
   team proposed Temporal
 - Row-level security, schemas per module and transactions point to PostgreSQL
-- The contracts (functions, events, cards, the training example format) should use a
+- The contracts (system calls, events, cards, the training example format) should use a
   standard format both TypeScript and Python can read
-- Any model must be able to call the functions, so the function reference must turn
+- Any model must be able to call the system calls, so the system call reference must turn
   into the standard tool formats models read, without hand work per model
 - The sales screen must work on tablets and phones; answers must stream
 
@@ -2329,13 +2331,13 @@ the team's decision; the term 1 plan changes with it.
 ## 24. Research questions
 
 1. Can open models, fine-tuned on Egyptian Arabic small-business work, run a
-   business's customer chats and daily operations through functions and skills, at a
+   business's customer chats and daily operations through system calls and skills, at a
    level owners accept?
 2. Does the same model adapt to a new business category with a template, skills
    and little extra data?
-3. Does splitting the work into functions and skills let the model handle new tasks
+3. Does splitting the work into system calls and skills let the model handle new tasks
    without retraining?
-4. With the same functions and skills, how close does our tuned model come to
+4. With the same system calls and skills, how close does our tuned model come to
    commercial models, at what cost per conversation?
 
 **Measured:**
@@ -2343,13 +2345,13 @@ the team's decision; the term 1 plan changes with it.
 | Measure | How |
 |---------|-----|
 | Chats handled with no human | Share of conversations in the pilot |
-| Right action | Correct function and inputs on the test set |
+| Right action | Correct system call and inputs on the test set |
 | Skill runs | Share of skill runs finished correctly on the test set |
 | Orders captured from chat | Share of chat orders created correctly |
 | Reply time | Seconds, median and 90th percentile, per tier |
 | Owner time and money saved | Pilot, compared with a baseline week before the AI is on |
 | Tuned versus untuned | Same test set, tuned against the untuned base model, per tier |
-| Tuned versus commercial | Same test set, functions and skills; our tuned models against commercial models, with cost per conversation |
+| Tuned versus commercial | Same test set, system calls and skills; our tuned models against commercial models, with cost per conversation |
 | Adaptation | Score on a category barely seen in training |
 | New skills | Score on skills written after training |
 
@@ -2359,19 +2361,19 @@ the team's decision; the term 1 plan changes with it.
 
 | Risk | What we do |
 |------|-----------|
-| Our tuned models are not reliable enough in time | Start data and tuning early; small function sets per task; skills with exact steps; hand off when unsure; measure weekly |
+| Our tuned models are not reliable enough in time | Start data and tuning early; small system call sets per task; skills with exact steps; hand off when unsure; measure weekly |
 | The big model costs too much GPU | The AI team confirms its size early; rent by the hour; fall back to a smaller big model |
 | Modules drift apart (two records for one customer, shapes that differ) | One owner and one ID per thing (2.4); identity resolution only in CRM (2.5); shared shapes in the contracts; end-to-end tests of every cross-module process |
-| The function list grows messy | One naming rule, one owner per function, the contracts as the only list; new abilities as skills first |
+| The system call list grows messy | One naming rule, one owner per system call, the contracts as the only list; new abilities as skills first |
 | An owner's skill edit breaks something | Preview and test run before saving; every version kept; skills cannot change permissions or approvals |
 | Meta approval for WhatsApp is slow | Website chat and Telegram first; request approval early |
-| Wrong price or order from the AI | Prices and stock only from functions; confirmation with the customer; hand off below a confidence level |
+| Wrong price or order from the AI | Prices and stock only from system calls; confirmation with the customer; hand off below a confidence level |
 | Public posts or replies go wrong | Approval for anything public until the owner switches it to act alone |
 | Scope creep | Work goes by term; one person has the final say on scope |
 | Data leaks between businesses | Row-level security, schema users and tests that try to cross businesses |
 | Shops do not adopt it | Built from shop visits; fast sales screen; visible monthly value |
 | A picked commercial model leaks business data or costs too much | Our models stay the default; the picker shows what leaves our server and the cost before switching; personal data masked; owner-only switch, audited |
-| Skills quietly come to depend on one model | Skills name functions only (5.6); the test set runs on more than one model |
+| Skills quietly come to depend on one model | Skills name system calls only (5.6); the test set runs on more than one model |
 | Commercial runs leak into our training data | Runs are tagged by model; only runs by our models can become training or test data (6.10) |
 
 ---
