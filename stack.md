@@ -19,7 +19,7 @@ A desktop app comes later.
 | Look and parts | Tailwind, shadcn/ui | Ready parts we own and can change |
 | Languages | i18next | Arabic right-to-left and English |
 | Loading data | TanStack Query | Caching, retries and refresh without hand work |
-| Streaming answers | Server-sent events | Text first, cards when tools return |
+| Streaming answers | Server-sent events | Text first, cards when functions return |
 | Tests | Vitest, Playwright | Unit tests for parts, browser tests for the main flows |
 
 ## Backend
@@ -32,8 +32,8 @@ A desktop app comes later.
 | Queries | Kysely | Typed queries; the SQL stays visible |
 | Migrations | Plain SQL files per module schema | Security rules and policies stay readable |
 | Outbox and background jobs | pg-boss | Runs on PostgreSQL, no extra service |
-| Contracts | JSON Schema per tool, event and card | One source for the API description, input checks and types |
-| API description | OpenAPI, generated from the contracts | Anyone can use the tools from their pages alone |
+| Contracts | JSON Schema per function, event and card | One source for the API description, input checks and types |
+| API description | OpenAPI, generated from the contracts | Anyone can use the functions from their pages alone |
 | Module walls | Lint rules on imports | A module cannot import another module's code or tables |
 | Tests | Vitest with a real PostgreSQL in a container | Includes the test that tries to read another business's data and must fail |
 
@@ -43,7 +43,7 @@ A desktop app comes later.
 |------|----------|
 | Passwords | argon2id |
 | Login | Sessions in secure, HTTP-only cookies, lock-out after repeated failed tries (sessions or tokens is still open; the security member decides) |
-| Permissions | Roles and permissions checked in the backend on every tool call, never only in the app |
+| Permissions | Roles and permissions checked in the backend on every function call, never only in the app |
 | Data between businesses | Row-level security as the last wall, plus one database user per module |
 | Audit | Every write in the audit log, with who did it (member, AI or system) |
 | Abuse | Rate limits on the login and the public chat |

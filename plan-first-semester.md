@@ -11,7 +11,7 @@
 > first working version online, and proof that real shops want it: one AI for a
 > small business, running on **our own tuned models**, that talks to a coffee
 > shop's customers, takes their orders, watches stock and cash, and tells the
-> owner what needs attention, all through the tools of our own ERP and CRM.
+> owner what needs attention, all through the functions of our own ERP and CRM.
 >
 > This plan says **what** each subteam delivers, not **how**. What the system is
 > lives in [technical-structure.md](technical-structure.md), and where the code
@@ -20,7 +20,7 @@
 > parentheses, like (7.3), are sections of `technical-structure.md`.
 >
 > Updated 2026-10-19 to follow the rewritten technical structure: a chat-first
-> app, tools as the only door, skills, packs, and two model tiers.
+> app, functions as the only door, skills, packs, and two model tiers.
 
 ## Contents
 
@@ -44,7 +44,7 @@ here is ordered into term 2 (23), not dropped.
 
 | Part | What works |
 |------|-----------|
-| AI | Two faces on our tuned models: the customer agent (small tier) and the owner partner (big tier) (6.1, 6.2). It acts only through tools, follows the core skills, plans multi-step work with one approval per plan, and follows the owner's settings for what it may do alone (6.6) |
+| AI | Two faces on our tuned models: the customer agent (small tier) and the owner partner (big tier) (6.1, 6.2). It acts only through functions, follows the core skills, plans multi-step work with one approval per plan, and follows the owner's settings for what it may do alone (6.6) |
 | Home: AI chat | The owner opens a chat, not a dashboard. The morning briefing as cards with buttons; answers streamed as text and cards; threads; a side panel for opened cards; **Ask first / Act alone** (17.1) |
 | Customer chats | Website chat and Telegram (WhatsApp if Meta approves in time). The AI answers and takes orders; staff take over and hand back in the Inbox |
 | Menu and recipes | Items with sizes and options, recipes made of ingredients, cost and margin per item |
@@ -100,7 +100,7 @@ These answer the research questions (24).
 - A test set of 150+ requests (coffee shop, small market, Egyptian Arabic,
   Franco, English), plus test cases for every term 1 core and template skill (5.5)
 - Tuned versus untuned base model on the same test set, per tier
-- Two base model families compared (a tool-strong one and an Egyptian-dialect
+- Two base model families compared (one strong at calling functions and an Egyptian-dialect
   one), per tier
 - Adaptation: the score on the small market, whose test cases stay out of training
 - Skill runs: the share finished correctly. If time allows, the score on skills
@@ -112,7 +112,7 @@ These answer the research questions (24).
 
 - A test proving business A cannot read business B's data, and a test that each
   module's database user sees only its own schema; the AI layer's user sees none
-- Roles checked on every tool, for the app and the AI alike (staff never see
+- Roles checked on every function, for the app and the AI alike (staff never see
   cost or profit)
 - Every write in the audit log, including every AI action (`actor_type = ai`)
 - The AI can never raise its own permissions, and skills cannot change
@@ -158,7 +158,7 @@ Windows 1 to 9 and 13 to 15 (17.2): sign up and setup, Home, Sales screen,
 Orders, Menu and stock, Customers, Inbox, Approvals, Settings, Shop page, Order
 status, Landing page.
 
-In term 1, a few things inside these windows wait for term 2 tools: the menu
+In term 1, a few things inside these windows wait for term 2 functions: the menu
 photo in setup and invoice photos need image reading, and voice notes need
 speech to text (4.5). Term 1 does them by typing.
 
@@ -173,12 +173,12 @@ The term 1 skills from the catalog (16):
 | Jobs | `morning_briefing`, `reorder_low_stock`, `cash_gap_alert`, `cost_change_alert`, `end_of_day`, `prepare_tomorrow`, `new_regular` |
 | Small market template | `debt_reminders` (basic) |
 
-`end_of_day` and `prepare_tomorrow` use Team tools, which come in term 2. In
+`end_of_day` and `prepare_tomorrow` use Team functions, which come in term 2. In
 term 1 those steps are skipped because the `team` pack is off (7.3, rule 4).
 
-### 2.4 Tools
+### 2.4 Functions
 
-Every tool in sections 6.9, 7.5, 8.5, 9.5, 10.2, 11.4 and 15.1 whose pack is in
+Every function in sections 6.9, 7.5, 8.5, 9.5, 10.2, 11.4 and 15.1 whose pack is in
 term 1 and that is not marked T2. Each one gets its full reference page (4.4)
 before it is built.
 
@@ -188,9 +188,9 @@ before it is built.
 
 | Subteam | People | Owns | Works in |
 |---------|:------:|------|----------|
-| Backend | 2 CS | The Core, ERP, CRM, Channels, Store and Reports modules; the platform (tenancy, permissions, packs, tool registry, events, scheduler, undo, dry run); the four doors; the tool reference pages; the fake backend; the online version | `app-backend` |
+| Backend | 2 CS | The Core, ERP, CRM, Channels, Store and Reports modules; the platform (tenancy, permissions, packs, function registry, events, scheduler, undo, dry run); the four doors; the function reference pages; the fake backend; the online version | `app-backend` |
 | Frontend | 2 CS | The chat-first app (windows 1 to 9), the shop page and order status (13, 14), the landing page (15), the shared cards | `app-web` |
-| AI agent | 2 AI | The AI layer: both faces, jobs, the planner, approvals, permission settings, the business brain, core and template skills, tool loading and `ai.find_tools` | `app-ai-agent` |
+| AI agent | 2 AI | The AI layer: both faces, jobs, the planner, approvals, permission settings, the business brain, core and template skills, function loading and `ai.find_functions` | `app-ai-agent` |
 | AI data | 2 AI | The models: base model choice per tier, training data, fine-tuning, serving, the test set, results | `app-ai-model` |
 | Market | 1 AI (lead) + everyone | Interviews, sign-ups, pilot shops, real messages for training (with consent) | |
 | Security | 1 | Login, roles and permissions, the wall between businesses, audit, AI safety. Decides the rules, then reviews and tests every part | All three repos (reviews) |
@@ -198,18 +198,18 @@ before it is built.
 - Each subteam has **one lead**; one person has the final say on scope
 - Everyone visits **at least 3 shops** during weeks 5 to 8
 - The contracts are shared. Backend writes and keeps them; each subteam that
-  depends on a contract reviews it: the tool descriptions (AI agent, because the
+  depends on a contract reviews it: the function descriptions (AI agent, because the
   model reads them), the cards (Frontend), the training format (AI agent and AI
   data), the roles and the AI defaults (Security and AI agent)
 
 ### 3.1 Backend: two tracks
 
 The backend has two sides (2.9 in the design): the platform and the business
-systems. Each backend member takes one track; they meet at the tool pages.
+systems. Each backend member takes one track; they meet at the function pages.
 
 | Week | Platform track | Business systems track |
 |:----:|----------------|------------------------|
-| 5 | Done: accounts, log-in, sessions and devices, business setup, the wall between businesses, audit, outbox. Next: roles and permissions, packs and templates, the tool registry, inviting members | The demo coffee shop data, the fake backend, shared pieces (money, per-business numbers, retry keys) |
+| 5 | Done: accounts, log-in, sessions and devices, business setup, the wall between businesses, audit, outbox. Next: roles and permissions, packs and templates, the function registry, inviting members | The demo coffee shop data, the fake backend, shared pieces (money, per-business numbers, retry keys) |
 | 6 | The AI door (service token, who the AI acts for), Home routes | Catalog, recipes and cost, the stock ledger and levels, suppliers |
 | 7 | Streaming relay to the app, realtime for the Orders board | Orders, counter sales, shifts and cash, purchases, expenses, Reports first version |
 | 8 | The public door and its limits | Channels (website chat, Telegram), CRM (customers, identities, loyalty, cases, bookings), Store (shop page, order status) |
@@ -223,8 +223,8 @@ systems. Each backend member takes one track; they meet at the tool pages.
 flowchart LR
     Market -->|"real requests, anonymized"| AIData[AI data]
     Market -->|"owner feedback"| Frontend
-    Backend -->|"contracts: tool pages, events, cards, packs"| Frontend
-    Backend -->|"contracts, fake backend, then real tools"| AIAgent[AI agent]
+    Backend -->|"contracts: function pages, events, cards, packs"| Frontend
+    Backend -->|"contracts, fake backend, then real functions"| AIAgent[AI agent]
     Backend -->|"demo businesses, dry run, AI action log"| AIData
     AIData -->|"served models, test results"| AIAgent
     AIAgent -->|"scripted conversations, skill test cases"| AIData
@@ -239,8 +239,8 @@ flowchart LR
 
 | # | Rule | What it means |
 |:-:|------|---------------|
-| 1 | Contract first | Before a tool is built, its reference page is written in `app-backend/contracts` (purpose, inputs, output, errors, effects, rules, examples, version). The same goes for events, cards and packs. Everyone builds against the page (4.4) |
-| 2 | Nobody waits | Frontend and the AI team build against the fake backend, which answers every tool from its page's examples and the demo businesses, then switch to the real tools when they are ready |
+| 1 | Contract first | Before a function is built, its reference page is written in `app-backend/contracts` (purpose, inputs, output, errors, effects, rules, examples, version). The same goes for events, cards and packs. Everyone builds against the page (4.4) |
+| 2 | Nobody waits | Frontend and the AI team build against the fake backend, which answers every function from its page's examples and the demo businesses, then switch to the real functions when they are ready |
 | 3 | Integration day every week | On the last working day, the real parts are connected and the week's demo runs from start to end |
 | 4 | Definition of done | It works in the weekly demo, it matches its reference page (the pages test passes), and Security has reviewed it |
 | 5 | Changing a contract | Announced to every subteam before it is merged, and written in `contracts/changes`. A breaking change is a new version; the old one keeps working (4.4) |
@@ -254,15 +254,15 @@ The order matters more than the week.
 | From | To | What | Around |
 |------|----|------|--------|
 | Backend | Everyone | The `rules/` pages and the contracts skeleton: values (IDs, statuses, roles, channels), the event envelope, error codes, limits | Week 4 |
-| Backend and AI agent | Everyone | The term 1 tool list (name, one line, pack, face, read or write) and the packs list | Week 4 |
+| Backend and AI agent | Everyone | The term 1 function list (name, one line, pack, face, read or write) and the packs list | Week 4 |
 | Security | Everyone | Roles and permissions, including every AI area; the login decision (26) | Week 4 |
 | AI agent and Security | Everyone | Default AI permission settings (6.6) and hand-off rules | Week 4 |
 | Frontend | Everyone | Wireframes of the term 1 windows and the card list | Week 4 |
 | AI data and AI agent | Everyone | The training example format, in `contracts/training` | Week 4 |
-| Backend | Frontend, AI agent, AI data | The fake backend and the demo coffee shop, growing with every new tool page | From week 5 |
+| Backend | Frontend, AI agent, AI data | The fake backend and the demo coffee shop, growing with every new function page | From week 5 |
 | AI data | AI agent | The untuned base models for both tiers, served with the chat-completions-with-tools API and streaming | Week 5 |
-| Backend | Frontend, AI agent | Each feature's tool pages, a week before its real tools | Every week |
-| Backend | Frontend, AI agent | Each feature's real tools, events and the streaming relay, ready to connect | Every week, by integration day |
+| Backend | Frontend, AI agent | Each feature's function pages, a week before its real functions | Every week |
+| Backend | Frontend, AI agent | Each feature's real functions, events and the streaming relay, ready to connect | Every week, by integration day |
 | AI agent | AI data | Scripted conversations and skill test cases | Every week from week 5 |
 | AI data | AI agent | Test results and weak spots | Every week from week 6 |
 | Frontend | AI agent | Order, item, stock, customer, cash and sales cards for AI answers | Week 7; approval and plan cards week 9 |
@@ -301,25 +301,25 @@ not deadlines.
 
 | Subteam | Delivers |
 |---------|----------|
-| Backend | The `rules/` pages (modules, data, tools, events, web, contracts). The contracts skeleton: values (ID types, order statuses, roles and permissions, channels, payment methods, AI permission settings), the event envelope and the term 1 events list, error codes, limits. With the AI agent, the term 1 tool list. The term 1 packs list with what each needs. The three repos set up so any member can run them |
+| Backend | The `rules/` pages (modules, data, functions, events, web, contracts). The contracts skeleton: values (ID types, order statuses, roles and permissions, channels, payment methods, AI permission settings), the event envelope and the term 1 events list, error codes, limits. With the AI agent, the term 1 function list. The term 1 packs list with what each needs. The three repos set up so any member can run them |
 | Frontend | Wireframes of windows 1 to 9 and 13 to 15: the sidebar by role and packs, the Home chat with briefing cards and the side panel, the **+** menu, Ask first / Act alone, the sales screen. Arabic right to left, and a mobile sketch of the key windows. The card list (order, item, stock, customer, cash, sales, approval, plan). Landing page design and text |
-| AI agent | With Backend, the term 1 tool list. The default AI permission settings (6.6) and the hand-off rules. The term 1 core skills, each with the packs and tools it needs. 3 full example conversations written as tool calls: a customer orders on chat, the owner asks for sales and a latte's cost, low stock becomes a purchase draft for approval |
-| AI data | Shortlist of open base models per tier: a tool-strong family and an Egyptian-dialect family. For each: size, Arabic quality, tool use, license, GPU needed. The training example format. Open datasets with their licenses. 30 example requests (coffee shop) with the right tool or skill. How we score: right tool, right inputs, right final answer, hand-off when it should, skill run finished. GPU plan |
-| Security | Roles and permissions (owner, manager, staff, viewer) for every term 1 tool area and AI area. Main risks, each with how we stop it. GitHub rules: no secrets, changes to `main` only through a pull request with one review. Login: sessions with lock-out, or tokens (26) |
+| AI agent | With Backend, the term 1 function list. The default AI permission settings (6.6) and the hand-off rules. The term 1 core skills, each with the packs and functions it needs. 3 full example conversations written as function calls: a customer orders on chat, the owner asks for sales and a latte's cost, low stock becomes a purchase draft for approval |
+| AI data | Shortlist of open base models per tier: a family strong at calling functions and an Egyptian-dialect family. For each: size, Arabic quality, function calling, license, GPU needed. The training example format. Open datasets with their licenses. 30 example requests (coffee shop) with the right function or skill. How we score: right function, right inputs, right final answer, hand-off when it should, skill run finished. GPU plan |
+| Security | Roles and permissions (owner, manager, staff, viewer) for every term 1 function area and AI area. Main risks, each with how we stop it. GitHub rules: no secrets, changes to `main` only through a pull request with one review. Login: sessions with lock-out, or tokens (26) |
 | Market | Interview script, list of 50 coffee shops and small markets, sign-up form, consent text for training on anonymized messages. Start the WhatsApp business request; create the Telegram bot |
 
 **Integration:** all leads agree the first contracts. Every window shows data a
-tool returns; every skill uses tools on the list; every tool has a role rule and
-an AI default; every example request maps to a tool or a skill; the events list
+function returns; every skill uses functions on the list; every function has a role rule and
+an AI default; every example request maps to a function or a skill; the events list
 covers every job; open questions are written down, each with an owner.
 
 ### Week 5 (Oct 17 to 23): Accounts, business setup, packs, base models running
 
 | Subteam | Delivers |
 |---------|----------|
-| Backend | Platform: tenancy with row-level security, auth, permissions, context, audit, events with the outbox, packs. Core: sign up, a business from the coffee shop template (its packs turned on), members invited with roles, packs on and off. The tool registry, filtering by pack, role and face. Reference pages for the Core and catalog tools. The fake backend with the demo coffee shop |
+| Backend | Platform: tenancy with row-level security, auth, permissions, context, audit, events with the outbox, packs. Core: sign up, a business from the coffee shop template (its packs turned on), members invited with roles, packs on and off. The function registry, filtering by pack, role and face. Reference pages for the Core and catalog functions. The fake backend with the demo coffee shop |
 | Frontend | Sign up and setup (window 1). The app frame: sidebar by role and packs, language switch. The Home chat with streaming, against the fake backend. Landing page live |
-| AI agent | The owner partner answering in the Home chat through the fake backend: skills loaded with only their tools, every tool filtered for the person. `ai.find_tools` |
+| AI agent | The owner partner answering in the Home chat through the fake backend: skills loaded with only their functions, every function filtered for the person. `ai.find_functions` |
 | AI data | Untuned base models for both tiers on a rented GPU, reachable by the AI agent. Test set v0 (50 requests). Training data v0 (200 examples). GPU budget |
 | Security | Login protection. The isolation test (business A reads business B: must fail). The schema users test. The roles test started |
 | Market | 10 interviews. Share the landing page |
@@ -333,9 +333,9 @@ through `core.get_business` on the fake backend.
 
 | Subteam | Delivers |
 |---------|----------|
-| Backend | Catalog: items, sizes, options, categories. Recipes and cost per item. The stock ledger and levels (in, waste, adjust, count) and the forecast. Suppliers. Each tool's page first. Tests: pages, tools, and rebuilding stock levels from the ledger |
+| Backend | Catalog: items, sizes, options, categories. Recipes and cost per item. The stock ledger and levels (in, waste, adjust, count) and the forecast. Suppliers. Each function's page first. Tests: pages, functions, and rebuilding stock levels from the ledger |
 | Frontend | Menu and stock (window 5): items, sizes and options, recipe editor, ingredients, stock levels, waste log, suppliers. Item and stock cards |
-| AI agent | Skills: `add_item_by_talking`, `log_waste_by_talking`, `staff_how_to`. The owner asks about stock and item cost on the real tools |
+| AI agent | Skills: `add_item_by_talking`, `log_waste_by_talking`, `staff_how_to`. The owner asks about stock and item cost on the real functions |
 | AI data | First small tuning run, to prove the pipeline. Compare the base models on the test set |
 | Security | Review catalog and stock. Limits on inputs and uploads. Staff never see cost |
 | Market | 10 interviews. Pass real phrases to AI data |
@@ -350,7 +350,7 @@ Spanish latte and gets the recipe without its cost.
 |---------|----------|
 | Backend | Orders with the template's stages, all moves in one place (8.2); order numbers per business; line snapshots; payments. Counter sales, created and completed in one step. Stock reserved on accept, deducted on completion. Shifts and cash, with `CashGapFound`. Draft purchase orders. Expenses. Retry keys. Reports: sales, profit, home numbers (first version). Tests: order flow, retried calls write once |
 | Frontend | The sales screen (window 3): big buttons, cart, payment, shift open and close with the cash count. The Orders board (window 4), live. Order, cash and sales cards for AI answers |
-| AI agent | Orders through tools (create, move to the next stage). Sales and cash questions answered as cards. The Ask first / Act alone switch wired to the settings |
+| AI agent | Orders through functions (create, move to the next stage). Sales and cash questions answered as cards. The Ask first / Act alone switch wired to the settings |
 | AI data | Training data v1 (1,000 examples, including real ones). Second tuning run. Test set v1 (100 requests) |
 | Security | Who can give discounts, cancel, refund, and see profit and cash. Review |
 | Market | 10 interviews (30 total). Aim for 20 sign-ups |
@@ -366,7 +366,7 @@ a cash gap flagged; the owner asks the AI for today's sales and gets a sales car
 | Frontend | Inbox (window 7) with take over and hand back. Customers (window 6): customer page, cases, bookings. Shop page (window 13) with the menu and the chat. Order status (window 14). Customer card |
 | AI agent | The customer agent on the small tier: `answer_customer`, `take_order`, `handle_complaint`, `book_table` (basic), `order_request`. The `new_regular` job |
 | AI data | First tuned models ready, tested against the untuned ones. Arabic and Franco quality pass |
-| Security | The public shop page and chats protected from spam and fake orders. Prompt injection tests on the customer agent. The customer face limited to its own tools |
+| Security | The public shop page and chats protected from spam and fake orders. Prompt injection tests on the customer agent. The customer face limited to its own functions |
 | Market | Show the working system to interviewed shops. Ask for pilot commitments |
 
 **Integration demo:** a customer orders on Telegram and another on the shop
@@ -399,7 +399,7 @@ twice, with a bug list sorted by priority.
 | Market | Market proof slide |
 | AI agent and AI data | AI and model results slide, framed by the research questions (24) |
 | Security | Security slide |
-| Backend | Architecture slide: the four layers, the modules, tools as the only door |
+| Backend | Architecture slide: the four layers, the modules, functions as the only door |
 | Frontend | Live demo |
 | Leads | Every piece of feedback written down, sorted into "fix before the real presentation" and "term 2" |
 
@@ -413,7 +413,7 @@ twice, with a bug list sorted by priority.
 |---------|----------|
 | Backend | Fixes from the feedback. The small market template: its packs (`barcodes`, `credit` basic, `expiry` basic), fields, stages and home items. The demo small market. Pilot accounts ready. WhatsApp connected if approved |
 | Frontend | Fixes from the feedback. Windows follow the small market template (barcodes and credit on the sales screen, debts and expiring items on Home) |
-| AI agent | Fixes from the feedback. The small market template's skills (`debt_reminders` basic); the AI follows its packs, tools and rules |
+| AI agent | Fixes from the feedback. The small market template's skills (`debt_reminders` basic); the AI follows its packs, functions and rules |
 | AI data | Third tuning run with the practice feedback. Small market test set (50 requests) for the adaptation test, kept out of training |
 | Security | The online system safe for real shops' data |
 | Market | 2 to 3 pilot cafés set up and trained. Baseline week numbers before the AI is switched on |
