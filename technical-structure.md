@@ -21,6 +21,11 @@
 > before: tools, then functions). The modules' own code under them is called
 > **internal code**. The parts that talk to outside services (Telegram, Meta,
 > payments) are called **drivers** (before: adapters).
+>
+> Updated 2026-10-21: the backend is described as an operating system for a
+> business (2.9 to 2.11): a Gateway with its doors and the Shell, then the
+> Kernel, the only part that reads and writes business data, with the Index,
+> the OGR, the Registry, the Daemons, the modules and their drivers.
 
 ---
 
@@ -214,6 +219,8 @@ One backend made of strict modules and one database. Not microservices.
 5. **The AI acts only through system calls.** It owns no business data and never reads
    the business tables
 6. **Every write is audited, every state change emits an event**
+7. **Only the Kernel reads and writes business data** (2.9). Modules, daemons
+   and doors all go through it
 
 ### 2.1 Data rules
 
@@ -257,8 +264,10 @@ One backend made of strict modules and one database. Not microservices.
 | `reports` | Reports |
 | `ai` | AI layer |
 
-Each module connects with its own database user, which has rights only on its
-own schema. The AI layer's user cannot see any business schema.
+Only the Kernel opens the database (2.9). For each system call it switches to
+the owning module's database user, which has rights only on that module's
+schema, so a module's code can never touch another module's tables. The AI
+module's user cannot see any business schema.
 
 ### 2.4 Working together: one thing, one ID, everywhere
 
@@ -363,85 +372,179 @@ Rules:
 - An end-to-end test runs each process in 2.7 through every module, and a
   contract test checks that each module accepts and returns the shared shapes
 
-### 2.9 Two sides: the platform and the business systems
+### 2.9 The backend as an operating system for a business
 
-The backend has two sides, like an AI code editor and the files it works on.
-The editor runs the user's session and the agent; the files and the shell are
-worked on only through the editor's tools. In the same way:
+The backend works like a computer's operating system, but for a business, and
+driven by the AI. The owner or staff can use the ERP, CRM and Channels
+directly from the screens, the way a person types commands in a shell; or
+they ask the AI, which uses the very same system calls. A system call is one
+small action, like `cat` on a computer: `channels.get_conversation` reads a
+chat, `erp.create_item` adds a product.
 
-| Side | What it is | Parts | Code |
-|------|-----------|-------|------|
-| **The platform** | Runs the product, not one business: who you are, which business, what is on, who may do what, and the door the AI comes through | Accounts, log-in, sessions, devices, emails; businesses, members, roles, names (7.7); templates and packs; the system call registry; permissions, audit, events, scheduler, approvals, undo, dry run; the AI door (service token, who the AI acts for) and streaming to the app | `platform/`, `modules/core/` |
-| **The business systems** | The business's own records and rules. Each one stands alone | ERP, CRM, Channels, Store website, Reports (Studio, Marketing and Team in term 2) | `modules/erp/`, `modules/crm/`, ... |
+| Computer | Ours |
+|----------|------|
+| User mode and kernel mode | The Gateway (mode 1) and the Kernel side (mode 0) |
+| Shell: log-in, who you are | Shell |
+| Kernel | Kernel |
+| System calls (`read`, `write`, `open`) | System calls of each module (`erp.create_item`) |
+| Users, groups, home folders | Index |
+| Links between files | OGR |
+| Daemons, cron | Daemons |
+| Drivers | Drivers (Telegram, Meta, payments) |
+| Programs | Modules: ERP, CRM, Channels, the AI module; Marketing, Studio later |
+| A person or an agent using the computer | The owner, the staff or the AI running the business |
 
-Rules:
+#### The parts
 
-1. Each business system stands alone: its own schema, its own database user,
-   its own system calls and system call pages. It works the same whether a screen, the AI or
-   an outside caller uses it, and it knows nothing about sessions or models
-2. The platform reaches a business system only through its system calls. A business
-   system never reads the platform's tables; it gets who is acting and which
-   business from the call's context (2.6)
-3. Business systems talk to each other only through events and service calls
-   (2.7, 2.8)
-4. Both sides run in **one backend and one database** (2.3). Because the line
-   between them is the system calls, any business system can later move into its own
-   program without changing a system call
-5. The AI itself (models, skills, the agent) is the AI layer (6). The platform
-   only gives it the door and the system calls
+**Gateway (mode 1): everything that comes in.**
 
-The two backend members can work one side each; they meet only at the system call
-pages in `contracts/syscalls/`.
+- **Doors**, one per kind of caller:
+  - the **app door** (`api/app`): owners and staff, with a session cookie;
+  - the **ai door** (`api/ai`): the AI, with a service token and who it acts
+    for. Offering it as an MCP server is proposed (26);
+  - the **public door** (`api/public`): the shop page, the website chat and
+    the webhooks of outside services, with rate limits;
+  - the **outside door** (`api/outside`, term 2): outside websites with an
+    API key.
+- **Shell:** asks every caller "who are you?". It checks the cookie, the
+  token, the API key, or the secret an outside service sends with its webhook.
+  Then it signs a **Pass** for that one call. The Shell owns only the users
+  section of the database (accounts, sessions, devices, sign-in codes, 7.6).
+  It never reads or writes business data.
 
-How every part connects:
+A Pass holds `account_id`, `business_id`, the actor (a member, the AI and who
+it acts for, the system, or a customer) and when it expires. A request without
+a valid Pass never reaches the Kernel.
+
+**Kernel side (mode 0): the only place business data is touched.**
+
+- **Kernel:** takes a system call with its Pass and runs it. It is the only
+  part that reads and writes the business data. Before every call it runs
+  five checks, and it can block a call even when the AI or a person approved
+  it:
+  1. **May he:** the role, the packs on, the face, and the owner's AI
+     settings (6.6), with the approval when the call needs one. The Kernel
+     checks the approval itself; it never trusts an approval ID it is handed
+  2. **Same business:** every thing the call touches belongs to the Pass's
+     business (asked of the Index and the OGR)
+  3. **Data rules:** the module's rules, such as stock never going below zero
+     by mistake, or a post never scheduled in the past
+  4. **Already done:** a retried call with the same retry key writes once
+  5. **Within limits:** rate limits, money limits, the size of a bulk action
+
+  Then, in **one transaction**, it sets the business for row-level security,
+  runs the module's code, writes the change, the audit row and the event
+  (outbox), and records new things and links in the OGR. Either all of it is
+  saved, or none of it.
+- **Index:** answers "whose is it, and what may this person do?". It owns
+  the where section: businesses, members, roles, locations, templates, the
+  packs on for each business, and the AI settings (7.1). It is what keeps one
+  business's data apart from every other's, like home folders on a computer.
+- **OGR (One Global Reference):** answers "what is this, and what is it linked
+  to?". It is the web of links inside each business: this chat belongs to this
+  customer, who placed order #1042, which has two lattes. Each module owns its
+  own things; the OGR keeps only their IDs, their kind, the module that owns
+  them, and the links between them, so it never copies a module's data (2.4,
+  2.8). New links are added by the Kernel when a system call or an event
+  creates them (a chat with no order yet has no order link; when the customer
+  orders, the link is added). The AI asks it through its own system calls,
+  for example "which orders is this chat connected to?"
+- **Registry:** every system call, read from its page in the contracts (4.4),
+  with its module, pack, the roles that may use it and the AI's default
+  setting. The Kernel finds calls there; `ai.find_syscalls` lists the ones
+  this person may use.
+- **Daemons:** the parts that always run. They deliver events from the outbox
+  to the listeners, run jobs every few minutes or at a set time (expiring
+  stock, the morning briefing, scheduled posts), and retry what failed (a
+  message Telegram did not accept). A daemon never touches the data itself:
+  it calls the Kernel like anyone else, with the actor "system".
+- **Modules:** ERP, CRM, Channels, Store, Reports and the AI module in term 1;
+  Studio, Marketing and Team in term 2. Each module brings:
+  1. its own data section (its schema, 2.3);
+  2. its system calls, each with its page (4.4);
+  3. its rules, which the Kernel checks (check 3);
+  4. its kinds of things and links, registered with the OGR;
+  5. its listeners (events it reacts to) and its jobs for the Daemons;
+  6. its pack, so each business turns it on or off (7.3);
+  7. its drivers, if it talks to an outside service.
+
+  A module never opens the database itself and never reads another module's
+  tables; the Kernel runs its code. So a new module plugs in without changing
+  the Shell, the Kernel or any other module.
+- **The AI module:** the AI's own part inside the backend, with its own data
+  (memory, skills, schedules, approvals, the AI action log) and its own
+  system calls (6.9), checked by the Kernel like any other. For example
+  `ai.remember` saves a note, `ai.schedule` asks the Daemons to run something
+  later, and `ai.save_skill` saves a skill the owner changed by talking.
+  Storing the business brain here, the same for every model, is proposed; the
+  AI team agrees it with the backend (26).
+- **Drivers:** the only parts that talk to outside services. Each business
+  connects its own accounts, for example its own Telegram bot or its Facebook
+  page; the tokens are kept encrypted in the module that uses them. Messages
+  come **in** through the public door, like any request. Messages go **out**
+  only through a driver, and only when a system call or a daemon asks for it
+  through the Kernel. The Telegram driver serves Telegram; the Meta driver
+  serves Facebook, Instagram and WhatsApp.
+
+#### The database sections
+
+One database (2.3), in five sections:
+
+| Section | Owner | Holds | Where it is today |
+|---------|-------|-------|-------------------|
+| users | Shell | accounts, sessions, devices, sign-in codes | `core` schema; moves to its own schema later |
+| where | Index | businesses, members, roles, locations, templates, packs on, AI settings | `core` schema |
+| links | OGR | things and their links, per business | new `ogr` schema |
+| system | Kernel and Daemons | audit log, outbox, jobs, approvals | audit and outbox in `core`; jobs in the jobs library's tables |
+| data | each module | one schema per module: `erp`, `crm`, `channels`, `store`, `reports`, `ai`, ... | as in 2.3 |
+
+The Core of section 7 is therefore not one part any more: its sign-up and
+log-in (7.6) are the Shell, its businesses, members, roles and packs are the
+Index, and its audit, outbox and scheduler (7.4) are the Kernel and the
+Daemons.
+
+#### How every part connects
 
 ```mermaid
 flowchart LR
-  subgraph AIT["AI team: app-ai-agent, app-ai-model"]
-    MODEL["Our tuned model<br/>serve/"]
-    AGENT["AI agent<br/>faces, brain, skills"]
-    POLICY["Policy + planner<br/>policy, approvals"]
+  OWNER["Owner and staff<br/>staff app"]
+  AGENT["AI agent and models<br/>AI team"]
+  CUST["Customers<br/>shop page"]
+  OUT["Telegram, Meta"]
+  subgraph GW["Gateway: mode 1"]
+    AIDOOR["ai door<br/>token, acts for"]
+    APPDOOR["app door<br/>session cookie"]
+    PUBDOOR["public door<br/>webhooks, limits"]
+    SHELL["Shell<br/>who are you?<br/>signs a Pass"]
   end
-  OWNER["Owner and staff"]
-  CUST["Customers"]
-  TG["Telegram"]
-  subgraph WEB["Frontend: app-web"]
-    STAFF["Staff app<br/>staff/home, chat, cards"]
-    TC["syscalls-client"]
-    SHOP["Shop page"]
+  subgraph KS["Kernel side: mode 0"]
+    INDEX["Index<br/>whose? role?"]
+    OGR["OGR<br/>what is linked"]
+    REG["Registry<br/>system calls"]
+    DAEMONS["Daemons<br/>events, jobs, retries"]
+    KERNEL["Kernel<br/>5 checks, runs,<br/>reads and writes data"]
+    AIMOD["AI module"]
+    ERP["ERP"]
+    CRM["CRM"]
+    CHN["Channels"]
+    MORE["Store, Reports, ..."]
+    DRV["Drivers<br/>Telegram, Meta"]
   end
-  subgraph BE["Backend: app-backend, one program"]
-    AIDOOR["api/ai<br/>token + acts for"]
-    APPDOOR["api/app<br/>session cookie"]
-    PUBDOOR["api/public<br/>rate limits"]
-    subgraph PLAT["Platform"]
-      WHO["Who and where<br/>auth, context, tenancy"]
-      MAY["May they do it?<br/>permissions, packs, syscall-registry"]
-      RUN["Run the system call<br/>idempotency, audit, outbox"]
-    end
-    subgraph BIZ["Business systems"]
-      CORE["Core"]
-      ERP["ERP"]
-      CRM["CRM"]
-      CHN["Channels"]
-      STORE["Store"]
-      REP["Reports"]
-    end
-    EVT["Events<br/>dispatcher, listeners"]
-  end
-  DB[("PostgreSQL<br/>a schema per part")]
+  DB[("PostgreSQL<br/>users, where, links,<br/>system, data")]
 
-  OWNER --> STAFF --> TC --> APPDOOR
-  APPDOOR -->|"relay chat, stream back"| AGENT
-  AGENT --> MODEL
-  AGENT --> POLICY --> AIDOOR
-  CUST --> SHOP --> PUBDOOR
-  CUST --> TG --> PUBDOOR
-  AIDOOR & APPDOOR & PUBDOOR --> WHO --> MAY --> RUN
-  RUN --> CORE & ERP & CRM & CHN & STORE & REP
-  CORE & ERP & CRM & CHN & STORE & REP --> DB
-  DB -.->|"outbox rows"| EVT
-  EVT -.->|"listeners, live updates"| BIZ
+  AGENT --> AIDOOR
+  OWNER --> APPDOOR
+  CUST --> PUBDOOR
+  OUT -->|"webhooks"| PUBDOOR
+  AIDOOR & APPDOOR & PUBDOOR --> SHELL
+  SHELL -->|"Pass"| KERNEL
+  SHELL -.->|"users only"| DB
+  INDEX & OGR & REG -.->|"asked"| KERNEL
+  DAEMONS -->|"calls as system"| KERNEL
+  KERNEL -->|"runs their code"| AIMOD & ERP & CRM & CHN & MORE
+  KERNEL ==>|"reads and writes"| DB
+  CHN --> DRV
+  DRV -->|"send"| OUT
 ```
 
 ### 2.10 One request through every part
@@ -453,48 +556,192 @@ price change is Ask first (6.6), so it waits for the owner's tap.
 ```mermaid
 sequenceDiagram
   actor A as Owner
-  participant W as Staff app (app-web)
-  participant D as Doors (api/app, api/ai)
-  participant G as AI agent (app-ai-agent)
-  participant M as Model (app-ai-model)
-  participant P as Platform (checks, events)
-  participant B as ERP, Reports
+  participant W as Staff app
+  participant S as Gateway: doors and Shell
+  participant G as AI agent
+  participant M as Model
+  participant K as Kernel
+  participant X as Index, OGR, Registry
   participant DB as PostgreSQL
+  participant D as Daemons
 
   A->>W: sales today? raise latte to 50
-  W->>D: api/app chat, session cookie
-  D->>P: who, which business? (auth, context, tenancy)
-  P-->>D: owner of nova
-  D->>G: relay, acting for the owner
-  G->>D: api/ai: which system calls for him?
-  D->>P: filter by packs, role, face, AI settings
-  P-->>G: 5 to 15 system calls
+  W->>S: app door, session cookie
+  S->>S: Shell: owner of nova, signs a Pass
+  S->>G: relay the chat, acting for the owner
+  G->>S: ai door: ai.find_syscalls
+  S->>K: Pass: AI for the owner of nova
+  K->>X: Registry: calls for this role, packs, face, AI settings
+  K-->>G: 5 to 15 system calls
   G->>M: message, brain, skill, system calls
   M-->>G: call reports.get_sales
-  G->>D: run reports.get_sales
-  D->>P: check again
-  P->>B: run inside nova
-  B->>DB: read (row-level security: nova only)
-  DB-->>B: nova's rows
-  B-->>G: 37 orders, 4,250 EGP
+  G->>S: ai door: reports.get_sales
+  S->>K: Pass
+  K->>X: Index: is he in nova? may he read sales?
+  K->>DB: read inside nova (row-level security)
+  DB-->>K: nova's rows
+  K-->>G: 37 orders, 4,250 EGP
   M-->>G: call erp.change_price
   Note over G: Ask first: a one-step plan with its undo
   G-->>W: stream text, sales card, approval card
   A->>W: taps Approve
-  W->>D: approval, session cookie
-  D->>G: approved by the owner
-  G->>D: run erp.change_price with a retry key
-  D->>P: role, pack, approval
-  P->>B: change price
-  B->>DB: price + audit row + PriceChanged, one transaction
-  DB-->>P: outbox: PriceChanged
-  P-->>W: live update: the menu shows 50
-  B-->>G: done
+  W->>S: app door: approval, session cookie
+  S->>K: Pass: the owner approves
+  K->>DB: save the approval
+  G->>S: ai door: erp.change_price with a retry key
+  S->>K: Pass
+  K->>X: Index: role, pack. OGR: the latte is nova's
+  Note over K: 5 checks: may he, same business, data rules, already done, limits
+  K->>DB: price + audit row + PriceChanged, one transaction
+  K-->>G: done
+  D->>DB: outbox: PriceChanged
+  D-->>W: live update: the menu shows 50
   G-->>W: item card with Undo
 ```
 
-A button on the Menu screen calls the same `erp.change_price` with the same
-checks; only the door differs (cookie for screens, token for the AI).
+A button on the Menu screen calls the same `erp.change_price` through the app
+door, with the same five checks; only the door differs (cookie for screens,
+token for the AI).
+
+### 2.11 Class diagram
+
+The main parts and how they relate. The names are the design's, not the final
+names in the code.
+
+```mermaid
+classDiagram
+  direction TB
+
+  class Gateway {
+    +doors Door[]
+    +shell Shell
+  }
+  class Door {
+    +kind app, ai, public, outside
+    +receive(request) Result
+  }
+  class Shell {
+    -accounts Account[]
+    -sessions Session[]
+    +authenticate(credential) Account
+    +issuePass(account, business) Pass
+  }
+  class Pass {
+    <<record>>
+    +account_id
+    +business_id
+    +actor member, ai, system or customer
+    +expires_at
+  }
+  class Kernel {
+    +call(pass, syscall, input) Result
+    -mayHe(pass, syscall) bool
+    -sameBusiness(pass, thing) bool
+    -dataRules(syscall, input) bool
+    -alreadyDone(retry_key) bool
+    -withinLimits(pass, input) bool
+  }
+  class Index {
+    +businesses Business[]
+    +members Member[]
+    +packsOn Pack[]
+    +aiSettings AiSetting[]
+    +memberOf(account, business) Member
+  }
+  class OGR {
+    +things Thing[]
+    +links Link[]
+    +find(id) Thing
+    +related(id) Link[]
+    -link(a, relation, b)
+  }
+  class SyscallRegistry {
+    +register(module)
+    +listFor(pass, face) SystemCall[]
+  }
+  class Daemons {
+    +deliverEvents()
+    +every(interval, job)
+    +at(time, job)
+    +retrySend(message)
+  }
+  class Event {
+    <<record>>
+    +type
+    +business_id
+    +data
+  }
+  class SystemCall {
+    <<interface>>
+    +name
+    +pack
+    +roles Role[]
+    +aiDefault alone, ask or never
+    +run(db, input)* Output
+  }
+  class Module {
+    <<abstract>>
+    +schema
+    +syscalls()* SystemCall[]
+    +kinds()* ThingKind[]
+    +listeners() Listener[]
+    +jobs() Job[]
+  }
+  class AiModule {
+    +ai.remember() Note
+    +ai.schedule() Job
+    +ai.save_skill() Skill
+  }
+  class ErpModule {
+    +erp.create_item() Item
+    +erp.log_waste() Movement
+    +erp.create_order() Order
+  }
+  class CrmModule {
+    +crm.find_customer() Customer
+    +crm.get_timeline() Activity[]
+    +crm.open_case() Case
+  }
+  class ChannelsModule {
+    -drivers Driver[]
+    +channels.get_conversation() Chat
+    +channels.reply() Message
+    +channels.connect_channel() Account
+  }
+  class Driver {
+    <<interface>>
+    +connect(token)* ChannelAccount
+    +receive(raw)* Message
+    +send(account, message)* Sent
+  }
+  class TelegramDriver {
+    +send(account, message) Sent
+  }
+  class MetaDriver {
+    +send(account, message) Sent
+  }
+
+  Gateway *-- Door : has
+  Gateway *-- Shell : has
+  Shell ..> Pass : issues
+  Door ..> Kernel : call with Pass
+  Kernel ..> Index : whose?
+  Kernel ..> OGR : what is it?
+  Kernel ..> SyscallRegistry : finds
+  Kernel ..> Event : saves
+  Daemons ..> Kernel : calls
+  Daemons ..> Event : delivers
+  SyscallRegistry o-- SystemCall : lists
+  Module *-- SystemCall : publishes
+  Module ..> OGR : registers kinds
+  Module <|-- AiModule
+  Module <|-- ErpModule
+  Module <|-- CrmModule
+  Module <|-- ChannelsModule
+  ChannelsModule *-- Driver : uses
+  Driver <|.. TelegramDriver
+  Driver <|.. MetaDriver
+```
 
 ---
 
@@ -2099,7 +2346,7 @@ folder in the repos has a page saying what goes in it.
 
 | Repo | Holds | Who |
 |------|-------|-----|
-| [`app-backend`](https://github.com/puagraduationproject/app-backend) | Contracts, platform, modules, database, fake backend, tests | Backend |
+| [`app-backend`](https://github.com/puagraduationproject/app-backend) | Contracts, gateway, kernel, daemons, modules, database, fake backend, tests | Backend |
 | [`app-web`](https://github.com/puagraduationproject/app-web) | Staff app, shop pages, landing page | Frontend |
 | [`app-ai-agent`](https://github.com/puagraduationproject/app-ai-agent) | The AI layer: faces, jobs, planner, skills | AI agent |
 | [`app-ai-model`](https://github.com/puagraduationproject/app-ai-model) | Training, test set, results, serving | AI data |
@@ -2115,7 +2362,7 @@ app-backend/
 ├── README.md                           what it is, how work happens, the other repos
 ├── rules/                              one page each: architecture, modules, system calls, events, contracts
 ├── contracts/                          written once, read by every repo (4.4)
-│   ├── system calls/                          one reference page per system call, one folder per module
+│   ├── syscalls/                       one reference page per system call, one folder per module
 │   │   ├── core/  erp/  crm/  channels/  store/
 │   │   ├── studio/  marketing/  team/  reports/  ai/
 │   │   └── (each page: purpose, inputs, output, errors, effects, rules, examples, changes)
@@ -2136,33 +2383,42 @@ app-backend/
 │   ├── migrations/                     one folder per schema, with its tables: core, erp, crm,
 │   │                                   channels, store, studio, marketing, team, reports, ai
 │   └── seeds/                          invented demo coffee shop and small market
-├── platform/
+├── gateway/                            mode 1: everything that comes in (2.9)
+│   ├── doors/                          one system call API, four doors
+│   │   ├── app/                        logged-in members (session); relays owner chat to the AI
+│   │   ├── ai/                         the AI (service token plus who it acts for)
+│   │   ├── public/                     shop pages, chat widget, channel webhooks; rate limits
+│   │   └── outside/                    outside websites with API keys (term 2)
+│   ├── shell/                          who are you: sign up, log in, sessions, lock-out (7.6);
+│   │                                   owns the users section; signs the Pass
+│   ├── streaming                       relays the AI's streamed answer to the app
+│   └── realtime                        live updates: orders board, inbox, stock
+├── kernel/                             mode 0: the only part that reads and writes business data
+│   ├── call                            takes a system call with its Pass and runs it in one
+│   │                                   transaction: change, audit row, outbox, OGR links
+│   ├── checks                          may he, same business, data rules, already done, limits
 │   ├── tenancy                         every call inside one business (row-level security)
-│   ├── auth                            sign up, log in, sessions, lock-out
-│   ├── permissions                     one check for every system call: role, pack, face, AI setting
-│   ├── packs                           essentials and packs on for this business; needs, on, off
-│   ├── syscall-registry                   loads the system call pages; filters by pack, role, face
 │   ├── context                         business, actor, correlation ID, retry key on every call (2.6)
+│   ├── index/                          businesses, members, roles, locations, templates, packs on,
+│   │                                   AI settings; whose is it, what may he do
+│   ├── ogr/                            things and their links, per business
+│   ├── syscall-registry                loads the system call pages; filters by pack, role, face
+│   ├── approvals                       saves and checks approvals itself
 │   ├── audit                           audit row on every write
-│   ├── events                          outbox, dispatcher, retries, listener registry
-│   ├── scheduler                       time-based events: expiring stock, quiet regulars,
-│   │                                   morning briefing, scheduled posts
 │   ├── idempotency                     retried calls write once
 │   ├── undo                            runs a system call's undo from the audit log
 │   ├── dry-run                         runs system calls with no real writes, for skill test runs
 │   ├── numbering                       #1042 per business
 │   ├── money                           whole piastres plus currency
-│   ├── errors                          error codes, never message text
-│   ├── streaming                       relays the AI's streamed answer to the app
-│   └── realtime                        live updates: orders board, inbox, stock
-├── api/                                one system call API, four doors (section 3)
-│   ├── app/                            logged-in members (session); relays owner chat to the AI
-│   ├── ai/                             the AI layer (service token plus who it acts for)
-│   ├── public/                         shop pages, chat widget, channel webhooks; rate limits
-│   └── outside/                        outside websites with API keys (term 2)
+│   └── errors                          error codes, never message text
+├── daemons/                            always running; they call the Kernel as "system"
+│   ├── events                          delivers the outbox to listeners, retries, listener registry
+│   ├── jobs                            every few minutes or at a set time: expiring stock, quiet
+│   │                                   regulars, morning briefing, scheduled posts
+│   └── retries                         messages and calls an outside service did not accept
 ├── modules/
-│   ├── core/                           businesses, members, roles, locations, templates, packs,
-│   │                                   notifications
+│   ├── core/                           notifications, the business profile system calls (7.5)
+│   ├── ai/                             the AI module: memory, skills, schedules, the AI action log (6.9)
 │   ├── erp/
 │   │   ├── catalog/                    items, variants, modifiers, categories (essentials)
 │   │   ├── orders/                     orders, lines with snapshots, the order stages
@@ -2174,7 +2430,7 @@ app-backend/
 │   │   ├── purchasing/                 suppliers, purchase orders, receiving
 │   │   ├── credit/                     customer debts
 │   │   ├── expenses/
-│   │   └── drivers/                   payments, couriers (term 2)
+│   │   └── drivers/                    payments, couriers (term 2)
 │   ├── crm/
 │   │   ├── customers/                  customers, stats cache, usual order, merge and forget
 │   │   ├── identities/                 resolve identity, phone to +20, merge suggestions
@@ -2189,13 +2445,13 @@ app-backend/
 │   │   ├── conversations/              AI or staff, take over, hand back, tags
 │   │   ├── messages/                   one message shape
 │   │   ├── auto-replies/               away, opening hours, greeting
-│   │   └── drivers/                   website chat, Telegram; WhatsApp, Instagram, Facebook later
+│   │   └── drivers/                    website chat, Telegram; WhatsApp, Instagram, Facebook later
 │   ├── store/
 │   │   ├── site/                       shop page, pages, banner, menu display, public ordering
 │   │   ├── search-presence/            descriptions, structured data, score, reviews (term 2)
-│   │   └── drivers/                   Google business profile and reviews (term 2)
+│   │   └── drivers/                    Google business profile and reviews (term 2)
 │   ├── studio/                         brand kit, design templates, render, designs, posts
-│   │   └── drivers/                   image model (term 2)
+│   │   └── drivers/                    image model (term 2)
 │   ├── marketing/                      offers, campaigns, sends (term 2)
 │   ├── team/                           staff profiles, rota, attendance, tasks (term 2)
 │   └── reports/                        summary tables from events
@@ -2206,7 +2462,7 @@ app-backend/
     ├── isolation                       business A reads business B: must fail
     ├── schema-users                    each module's database user sees only its schema
     ├── roles                           each role against each system call
-    ├── system calls                           each system call: allowed, refused by role, by pack, by face
+    ├── syscalls                        each system call: allowed, refused by role, by pack, by face
     ├── pages                           each system call behaves exactly as its reference page says
     ├── packs                           essentials alone, each template, each pack with its needs
     ├── undo                            every write system call's undo puts things back
@@ -2382,8 +2638,8 @@ the team's decision; the term 1 plan changes with it.
 
 Decisions still open before the structure is final:
 
-1. **Who checks an approval:** can the backend trust an approval ID from the AI
-   layer, or must it check the approval itself?
+1. **Who checks an approval:** answered 2026-10-21. The Kernel saves and
+   checks every approval itself and never trusts an approval ID it is handed (2.9)
 2. **Login:** sessions with lock-out, as written here, or tokens? Security decides
 3. **The models:** which base models, which sizes, one or two tiers, and the GPU
    cost. The AI team decides
@@ -2395,3 +2651,9 @@ Decisions still open before the structure is final:
    leave the country
 7. **Comparison timing:** whether "tuned versus commercial" moves into term 1
    for the first presentation
+8. **Where the business brain is stored:** in the backend's AI module (2.9),
+   the same for every model, or on the AI team's side. The AI team agrees it
+   with the backend
+9. **The ai door as an MCP server:** whether the AI reaches the system calls
+   through MCP, so any agent that speaks it can use them. The AI team agrees
+   it with the backend

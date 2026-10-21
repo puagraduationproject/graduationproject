@@ -188,7 +188,7 @@ before it is built.
 
 | Subteam | People | Owns | Works in |
 |---------|:------:|------|----------|
-| Backend | 2 CS | The Core, ERP, CRM, Channels, Store and Reports modules; the platform (tenancy, permissions, packs, system call registry, events, scheduler, undo, dry run); the four doors; the system call reference pages; the fake backend; the online version | `app-backend` |
+| Backend | 2 CS | The Core, ERP, CRM, Channels, Store and Reports modules; the Gateway (the four doors, the Shell) and the Kernel side (tenancy, the Kernel's checks, the Index with packs and permissions, the OGR, the system call registry, the Daemons with events and jobs, undo, dry run); the system call reference pages; the fake backend; the online version | `app-backend` |
 | Frontend | 2 CS | The chat-first app (windows 1 to 9), the shop page and order status (13, 14), the landing page (15), the shared cards | `app-web` |
 | AI agent | 2 AI | The AI layer: both faces, jobs, the planner, approvals, permission settings, the business brain, core and template skills, system call loading and `ai.find_syscalls` | `app-ai-agent` |
 | AI data | 2 AI | The models: base model choice per tier, training data, fine-tuning, serving, the test set, results | `app-ai-model` |
@@ -204,14 +204,16 @@ before it is built.
 
 ### 3.1 Backend: two tracks
 
-The backend has two sides (2.9 in the design): the platform and the business
-systems. Each backend member takes one track; they meet at the system call pages.
+The backend works like an operating system for a business (2.9 in the design).
+One backend member takes the Gateway and the Kernel side (the doors, the Shell,
+the Kernel and its checks, the Index, the OGR, the Registry, the Daemons); the
+other takes the modules. They meet at the system call pages.
 
-| Week | Platform track | Business systems track |
+| Week | Gateway and Kernel track | Modules track |
 |:----:|----------------|------------------------|
 | 5 | Done: accounts, log-in, sessions and devices, business setup, the wall between businesses, audit, outbox. Next: roles and permissions, packs and templates, the system call registry, inviting members | The demo coffee shop data, the fake backend, shared pieces (money, per-business numbers, retry keys) |
 | 6 | The AI door (service token, who the AI acts for), Home routes | Catalog, recipes and cost, the stock ledger and levels, suppliers |
-| 7 | Streaming relay to the app, realtime for the Orders board | Orders, counter sales, shifts and cash, purchases, expenses, Reports first version |
+| 7 | Streaming relay to the app, realtime for the Orders board, the OGR (things and links) | Orders, counter sales, shifts and cash, purchases, expenses, Reports first version |
 | 8 | The public door and its limits | Channels (website chat, Telegram), CRM (customers, identities, loyalty, cases, bookings), Store (shop page, order status) |
 | 9 | Scheduler, approvals, undo, dry run, the AI action log | Low stock, cash gap and cost change events, demo data, home numbers |
 
@@ -317,7 +319,7 @@ covers every job; open questions are written down, each with an owner.
 
 | Subteam | Delivers |
 |---------|----------|
-| Backend | Platform: tenancy with row-level security, auth, permissions, context, audit, events with the outbox, packs. Core: sign up, a business from the coffee shop template (its packs turned on), members invited with roles, packs on and off. The system call registry, filtering by pack, role and face. Reference pages for the Core and catalog system calls. The fake backend with the demo coffee shop |
+| Backend | Gateway and Kernel: tenancy with row-level security, auth, permissions, context, audit, events with the outbox, packs. Core: sign up, a business from the coffee shop template (its packs turned on), members invited with roles, packs on and off. The system call registry, filtering by pack, role and face. Reference pages for the Core and catalog system calls. The fake backend with the demo coffee shop |
 | Frontend | Sign up and setup (window 1). The app frame: sidebar by role and packs, language switch. The Home chat with streaming, against the fake backend. Landing page live |
 | AI agent | The owner partner answering in the Home chat through the fake backend: skills loaded with only their system calls, every system call filtered for the person. `ai.find_syscalls` |
 | AI data | Untuned base models for both tiers on a rented GPU, reachable by the AI agent. Test set v0 (50 requests). Training data v0 (200 examples). GPU budget |
