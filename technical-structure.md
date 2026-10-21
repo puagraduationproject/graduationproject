@@ -238,7 +238,11 @@ One backend made of strict modules and one database. Not microservices.
 
 | Data | Owner |
 |------|-------|
-| Businesses, members, roles, locations, templates, packs on per business, audit, notifications | Core |
+| Accounts, sessions, sign-in codes | Shell (2.9) |
+| Businesses, members, roles, locations, templates, packs on per business, AI permission settings | Index (2.9) |
+| Things and the links between them | OGR (2.9) |
+| Audit log, outbox, approvals, jobs | Kernel and Daemons (2.9) |
+| Business profile, notifications | Core |
 | Items, recipes, stock, sales, orders, payments, shifts, suppliers, purchases, credit, expenses | ERP |
 | Customers, identities, timeline, loyalty, support cases, bookings, segments, consent | CRM |
 | Channel accounts, conversations, messages, auto-replies | Channels |
@@ -247,13 +251,14 @@ One backend made of strict modules and one database. Not microservices.
 | Offers, campaigns | Marketing |
 | Staff profiles, rota, attendance, tasks | Team |
 | Summary numbers | Reports |
-| Skills, plans, approvals, AI permission settings, memory, threads, knowledge, AI action log | AI layer (its own data only; business data only through system calls) |
+| Skills, plans, memory, threads, knowledge, AI action log | AI module (its own data only; business data only through system calls) |
 
 ### 2.3 One database, one schema per module
 
 | Schema | Module |
 |--------|--------|
-| `core` | Core |
+| `core` | Core, and for now the Shell, the Index, the audit log and the outbox |
+| `ogr` | OGR |
 | `erp` | ERP |
 | `crm` | CRM |
 | `channels` | Channels |
@@ -262,7 +267,7 @@ One backend made of strict modules and one database. Not microservices.
 | `marketing` | Marketing |
 | `team` | Team |
 | `reports` | Reports |
-| `ai` | AI layer |
+| `ai` | AI module |
 
 Only the Kernel opens the database (2.9). For each system call it switches to
 the owning module's database user, which has rights only on that module's
@@ -472,7 +477,7 @@ a valid Pass never reaches the Kernel.
   tables; the Kernel runs its code. So a new module plugs in without changing
   the Shell, the Kernel or any other module.
 - **The AI module:** the AI's own part inside the backend, with its own data
-  (memory, skills, schedules, approvals, the AI action log) and its own
+  (memory, skills, schedules, the AI action log) and its own
   system calls (6.9), checked by the Kernel like any other. For example
   `ai.remember` saves a note, `ai.schedule` asks the Daemons to run something
   later, and `ai.save_skill` saves a skill the owner changed by talking.
@@ -2360,7 +2365,7 @@ keeps its own copy.
 ```
 app-backend/
 ├── README.md                           what it is, how work happens, the other repos
-├── rules/                              one page each: architecture, modules, system calls, events, contracts
+├── rules/                              one page each: parts, architecture, modules, system calls, events, contracts
 ├── contracts/                          written once, read by every repo (4.4)
 │   ├── syscalls/                       one reference page per system call, one folder per module
 │   │   ├── core/  erp/  crm/  channels/  store/
@@ -2392,7 +2397,8 @@ app-backend/
 │   ├── shell/                          who are you: sign up, log in, sessions, lock-out (7.6);
 │   │                                   owns the users section; signs the Pass
 │   ├── streaming                       relays the AI's streamed answer to the app
-│   └── realtime                        live updates: orders board, inbox, stock
+│   ├── realtime                        live updates: orders board, inbox, stock
+│   └── server.ts                       starts the program and puts the doors together
 ├── kernel/                             mode 0: the only part that reads and writes business data
 │   ├── call                            takes a system call with its Pass and runs it in one
 │   │                                   transaction: change, audit row, outbox, OGR links
@@ -2405,6 +2411,7 @@ app-backend/
 │   ├── syscall-registry                loads the system call pages; filters by pack, role, face
 │   ├── approvals                       saves and checks approvals itself
 │   ├── audit                           audit row on every write
+│   ├── outbox                          the event, saved in the same transaction as the change
 │   ├── idempotency                     retried calls write once
 │   ├── undo                            runs a system call's undo from the audit log
 │   ├── dry-run                         runs system calls with no real writes, for skill test runs
