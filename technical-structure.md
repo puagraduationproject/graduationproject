@@ -453,7 +453,10 @@ a valid Pass never reaches the Kernel.
   2.8). New links are added by the Kernel when a system call or an event
   creates them (a chat with no order yet has no order link; when the customer
   orders, the link is added). The AI asks it through its own system calls,
-  for example "which orders is this chat connected to?"
+  for example "which orders is this chat connected to?": `ogr.get_thing`
+  (what one ID is: its kind, its module, its label) and `ogr.list_links`
+  (what it is linked to, up to 3 steps away). Only the Kernel writes the OGR,
+  so it has no write system calls
 - **Registry:** every system call, read from its page in the contracts (4.4),
   with its module, pack, the roles that may use it and the AI's default
   setting. The Kernel finds calls there; `ai.find_syscalls` lists the ones
@@ -1139,6 +1142,7 @@ is written to the audit log with `actor_type = ai`.
 | `ai.search_knowledge` | Searches the business's FAQs and policies |
 | `ai.remember` | Saves a decision to memory, after the owner confirms |
 | `ai.ask_approval` | Sends an approval card and waits |
+| `ai.ask_question` | Asks one question with 2 to 6 choices on a question card ("which Mariam?", "a muffin instead?"), and waits. On Telegram the choices are buttons |
 | `ai.schedule` | Runs a skill or a plan later, or repeatedly |
 | `ai.save_skill` | Saves a new or edited skill, after the owner confirms |
 | `ai.get_permissions` | What the AI may do here: each area's setting and limit (6.6) |
@@ -2108,7 +2112,7 @@ offered only when the packs it needs are on.
   model the owner picks (6.2)
 - Answers stream: text first, cards when system calls return
 - The AI answers only with the app's own cards (order, item, stock, customer,
-  cash, sales, approval, plan, post); an unknown card shows its plain text
+  cash, sales, approval, question, plan, post); an unknown card shows its plain text
 - Arabic right-to-left and mobile from day one
 
 **The first page after log-in is Home**, like a chat app (agreed 2026-10-21;
@@ -2374,7 +2378,8 @@ app-backend/
 │   ├── packs/                          the essentials and one page per pack (7.3): module, needs,
 │   │                                   system calls, windows, skills, listeners, settings, setup skill
 │   ├── events/                         the envelope (2.6) and one page per event
-│   ├── cards/                          order, item, stock, customer, cash, sales, approval, plan, post
+│   ├── cards/                          order, item, stock, customer, cash, sales, approval, question,
+│   │                                   plan, post
 │   ├── values/                         IDs, money, order statuses, roles, channels, payment methods,
 │   │                                   AI permission settings
 │   ├── errors/                         error codes
