@@ -388,6 +388,109 @@ Rules:
 The two backend members can work one side each; they meet only at the tool
 pages in `contracts/tools/`.
 
+How every part connects:
+
+```mermaid
+flowchart LR
+  subgraph AIT["AI team: app-ai-agent, app-ai-model"]
+    MODEL["Our tuned model<br/>serve/"]
+    AGENT["AI agent<br/>faces, brain, skills"]
+    POLICY["Policy + planner<br/>policy, approvals"]
+  end
+  OWNER["Owner and staff"]
+  CUST["Customers"]
+  TG["Telegram"]
+  subgraph WEB["Frontend: app-web"]
+    STAFF["Staff app<br/>staff/home, chat, cards"]
+    TC["tools-client"]
+    SHOP["Shop page"]
+  end
+  subgraph BE["Backend: app-backend, one program"]
+    AIDOOR["api/ai<br/>token + acts for"]
+    APPDOOR["api/app<br/>session cookie"]
+    PUBDOOR["api/public<br/>rate limits"]
+    subgraph PLAT["Platform"]
+      WHO["Who and where<br/>auth, context, tenancy"]
+      MAY["May they do it?<br/>permissions, packs, tool-registry"]
+      RUN["Run the tool<br/>idempotency, audit, outbox"]
+    end
+    subgraph BIZ["Business systems"]
+      CORE["Core"]
+      ERP["ERP"]
+      CRM["CRM"]
+      CHN["Channels"]
+      STORE["Store"]
+      REP["Reports"]
+    end
+    EVT["Events<br/>dispatcher, listeners"]
+  end
+  DB[("PostgreSQL<br/>a schema per part")]
+
+  OWNER --> STAFF --> TC --> APPDOOR
+  APPDOOR -->|"relay chat, stream back"| AGENT
+  AGENT --> MODEL
+  AGENT --> POLICY --> AIDOOR
+  CUST --> SHOP --> PUBDOOR
+  CUST --> TG --> PUBDOOR
+  AIDOOR & APPDOOR & PUBDOOR --> WHO --> MAY --> RUN
+  RUN --> CORE & ERP & CRM & CHN & STORE & REP
+  CORE & ERP & CRM & CHN & STORE & REP --> DB
+  DB -.->|"outbox rows"| EVT
+  EVT -.->|"listeners, live updates"| BIZ
+```
+
+### 2.10 One request through every part
+
+The owner of the café nova asks in Home: *"بعت كام النهارده؟ وارفع سعر اللاتيه
+لـ ٥٠ جنيه"* (sales today, and raise the latte to 50). The read runs at once; the
+price change is Ask first (6.6), so it waits for the owner's tap.
+
+```mermaid
+sequenceDiagram
+  actor A as Owner
+  participant W as Staff app (app-web)
+  participant D as Doors (api/app, api/ai)
+  participant G as AI agent (app-ai-agent)
+  participant M as Model (app-ai-model)
+  participant P as Platform (checks, events)
+  participant B as ERP, Reports
+  participant DB as PostgreSQL
+
+  A->>W: sales today? raise latte to 50
+  W->>D: api/app chat, session cookie
+  D->>P: who, which business? (auth, context, tenancy)
+  P-->>D: owner of nova
+  D->>G: relay, acting for the owner
+  G->>D: api/ai: which tools for him?
+  D->>P: filter by packs, role, face, AI settings
+  P-->>G: 5 to 15 tools
+  G->>M: message, brain, skill, tools
+  M-->>G: call reports.get_sales
+  G->>D: run reports.get_sales
+  D->>P: check again
+  P->>B: run inside nova
+  B->>DB: read (row-level security: nova only)
+  DB-->>B: nova's rows
+  B-->>G: 37 orders, 4,250 EGP
+  M-->>G: call erp.change_price
+  Note over G: Ask first: a one-step plan with its undo
+  G-->>W: stream text, sales card, approval card
+  A->>W: taps Approve
+  W->>D: approval, session cookie
+  D->>G: approved by the owner
+  G->>D: run erp.change_price with a retry key
+  D->>P: role, pack, approval
+  P->>B: change price
+  B->>DB: price + audit row + PriceChanged, one transaction
+  DB-->>P: outbox: PriceChanged
+  P-->>W: live update: the menu shows 50
+  B-->>G: done
+  G-->>W: item card with Undo
+```
+
+A button on the Menu screen calls the same `erp.change_price` with the same
+checks; only the door differs (cookie for screens, token for the AI).
+
 ---
 
 ## 3. The four layers: functions, tools, skills, model
