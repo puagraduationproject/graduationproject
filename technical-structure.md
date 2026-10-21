@@ -66,7 +66,7 @@ can pick the editor's own model or another one; every model uses the same tools.
 Here the owner talks to a model, and the model runs the business through the
 business's real tools: every function of its ERP and CRM.
 
-| AI code editor | Project X |
+| AI code editor | PUA Graduation Project |
 |----------------|-----------|
 | The app: chat, approvals, "ask before running" | The app: chat, cards, the AI's permissions (6.6) |
 | The tools: terminal, files, git | The tools: every ERP and CRM function (section 4) |
