@@ -27,6 +27,11 @@
 > Kernel, the only part that reads and writes business data, with the Index,
 > the OGR, the Registry, the Daemons, the modules and their drivers.
 >
+> Updated 2026-10-22: log-in is its own part of the Gateway (Login); the Shell
+> only runs commands. Everything goes through the Kernel, even log-in: the
+> Kernel is the only part that touches the database and the only one that
+> uses drivers, including the system's own drivers (email, files).
+>
 > Updated 2026-10-22: the business setup (7.7) follows what the team agreed
 > after the first deploy (`ALL-002`): language first, a short list of kinds
 > linked to their templates, "where is it?" instead of "who works in it?",
@@ -225,8 +230,8 @@ One backend made of strict modules and one database. Not microservices.
 5. **The AI acts only through system calls.** It owns no business data and never reads
    the business tables
 6. **Every write is audited, every state change emits an event**
-7. **Only the Kernel reads and writes business data** (2.9). Modules, daemons
-   and doors all go through it
+7. **Only the Kernel reads and writes data, and only the Kernel uses drivers**
+   (2.9). Modules, daemons, log-in and the doors all go through it
 
 ### 2.1 Data rules
 
@@ -244,7 +249,7 @@ One backend made of strict modules and one database. Not microservices.
 
 | Data | Owner |
 |------|-------|
-| Accounts, sessions, sign-in codes, setup steps | Shell (2.9) |
+| Accounts, sessions, sign-in codes, setup steps | Login (2.9), stored through the Kernel |
 | Businesses, members, roles, locations, templates, packs on per business, AI permission settings | Index (2.9) |
 | Things and the links between them | OGR (2.9) |
 | Audit log, outbox, approvals, jobs | Kernel and Daemons (2.9) |
@@ -263,7 +268,7 @@ One backend made of strict modules and one database. Not microservices.
 
 | Schema | Module |
 |--------|--------|
-| `core` | Core, and for now the Shell, the Index, the audit log and the outbox |
+| `core` | Core, and for now Login's accounts and sessions, the Index, the audit log and the outbox |
 | `ogr` | OGR |
 | `erp` | ERP |
 | `crm` | CRM |
@@ -395,13 +400,14 @@ chat, `erp.create_item` adds a product.
 | Computer | Ours |
 |----------|------|
 | User mode and kernel mode | The Gateway (mode 1) and the Kernel side (mode 0) |
-| Shell: log-in, who you are | Shell |
+| The log-in program | Login |
+| Shell: runs each command with your identity | Shell |
 | Kernel | Kernel |
 | System calls (`read`, `write`, `open`) | System calls of each module (`erp.create_item`) |
 | Users, groups, home folders | Index |
 | Links between files | OGR |
 | Daemons, cron | Daemons |
-| Drivers | Drivers (Telegram, Meta, payments) |
+| Drivers: the system's own, and a program's | System drivers (email, files) and module drivers (Telegram, Meta, payments) |
 | Programs | Modules: ERP, CRM, Channels, the AI module; Marketing, Studio later |
 | A person or an agent using the computer | The owner, the staff or the AI running the business |
 
@@ -417,20 +423,37 @@ chat, `erp.create_item` adds a product.
     the webhooks of outside services, with rate limits;
   - the **outside door** (`api/outside`, term 2): outside websites with an
     API key.
-- **Shell:** asks every caller "who are you?". It checks the cookie, the
-  token, the API key, or the secret an outside service sends with its webhook.
-  Then it signs a **Pass** for that one call. The Shell owns only the users
-  section of the database (accounts, sessions, devices, sign-in codes, 7.6).
-  It never reads or writes business data.
+- **Login:** the log-in engine: sign up, log in, email codes, passwords,
+  Google, sessions and devices, lock-out (7.6). It answers "who is this
+  person?" once, at log-in, and gives the browser its session. It keeps
+  nothing itself: to save an account, check a password, start a session or
+  send a code, it asks the Kernel through **internal system calls**
+  (`system.*`, below), through the Shell like every other command.
+- **Shell:** the only door into the Kernel. It takes every command (system
+  call) as it comes in: it checks the session, the token, the API key, or
+  the secret an outside service sends with its webhook; reads the command and
+  checks its inputs have the right shape; then signs a **Pass** for that one
+  call and hands it to the Kernel. It answers "who is sending this command,
+  and for which business?" on every call. It never reads or writes data.
 
 A Pass holds `account_id`, `business_id`, the actor (a member, the AI and who
-it acts for, the system, or a customer) and when it expires. A request without
-a valid Pass never reaches the Kernel.
+it acts for, the system, a customer, or the Gateway itself for log-in) and
+when it expires. A request without a valid Pass never reaches the Kernel.
 
-**Kernel side (mode 0): the only place business data is touched.**
+**Internal system calls (`system.*`)** are the calls Login needs before
+anyone is logged in: `system.find_account`, `system.create_account`,
+`system.check_password`, `system.set_password`, `system.start_session`,
+`system.end_session`, `system.send_mail`, and so on. The Kernel accepts them
+only from the Gateway, with the actor "gateway" and no business. They are
+never offered to the app, the AI or outside callers, and they are checked,
+limited and audited like any other call. The flow of a log-in is: Login →
+Shell → Kernel → Shell → Login.
+
+**Kernel side (mode 0): the only place data is touched.**
 
 - **Kernel:** takes a system call with its Pass and runs it. It is the only
-  part that reads and writes the business data. Before every call it runs
+  part that reads and writes data (business data and accounts alike), and the
+  only part that uses drivers. Before every call it runs
   five checks, and it can block a call even when the AI or a person approved
   it:
   1. **May he:** the role, the packs on, the face, and the owner's AI
@@ -497,8 +520,22 @@ a valid Pass never reaches the Kernel.
   page; the tokens are kept encrypted in the module that uses them. Messages
   come **in** through the public door, like any request. Messages go **out**
   only through a driver, and only when a system call or a daemon asks for it
-  through the Kernel. The Telegram driver serves Telegram; the Meta driver
-  serves Facebook, Instagram and WhatsApp.
+  through the Kernel. There are two kinds:
+  - **Module drivers** belong to a module and use the business's own
+    accounts: the Telegram driver, the Meta driver (Facebook, Instagram,
+    WhatsApp), payments and couriers, and later the business's own email as
+    a channel (Channels, term 2).
+  - **System drivers** belong to the system itself and use our own settings,
+    never a business's: `mail` (sign-in codes, log-in notices, invites, alerts
+    to owners and staff) and `files` (photos and uploads) in term 1; `push`
+    (the mobile app) and `sms` in term 2. Only the Kernel uses them: Login
+    sends a code with `system.send_mail`; anything else that emails a member
+    calls `core.notify`, and the Daemons send it, with retries.
+
+  A message to a **customer** always comes from the business, through
+  Channels. A message to an owner or staff member about the product comes
+  from the system's own address. So a customer never gets mail from our
+  address pretending to be the café.
 
 #### The database sections
 
@@ -506,14 +543,14 @@ One database (2.3), in five sections:
 
 | Section | Owner | Holds | Where it is today |
 |---------|-------|-------|-------------------|
-| users | Shell | accounts, sessions, devices, sign-in codes, setup steps | `core` schema; moves to its own schema later |
+| users | Login (through the Kernel) | accounts, sessions, devices, sign-in codes, setup steps | `core` schema; moves to its own schema later |
 | where | Index | businesses, members, roles, locations, templates, packs on, AI settings | `core` schema |
 | links | OGR | things and their links, per business | new `ogr` schema |
 | system | Kernel and Daemons | audit log, outbox, jobs, approvals | audit and outbox in `core`; jobs in the jobs library's tables |
 | data | each module | one schema per module: `erp`, `crm`, `channels`, `store`, `reports`, `ai`, ... | as in 2.3 |
 
 The Core of section 7 is therefore not one part any more: its sign-up and
-log-in (7.6) are the Shell, its businesses, members, roles and packs are the
+log-in (7.6) are Login, its businesses, members, roles and packs are the
 Index, and its audit, outbox and scheduler (7.4) are the Kernel and the
 Daemons.
 
@@ -529,7 +566,8 @@ flowchart LR
     AIDOOR["ai door<br/>token, acts for"]
     APPDOOR["app door<br/>session cookie"]
     PUBDOOR["public door<br/>webhooks, limits"]
-    SHELL["Shell<br/>who are you?<br/>signs a Pass"]
+    LOGIN["Login<br/>sign up, log in,<br/>sessions"]
+    SHELL["Shell<br/>checks each command,<br/>signs a Pass"]
   end
   subgraph KS["Kernel side: mode 0"]
     INDEX["Index<br/>whose? role?"]
@@ -542,7 +580,8 @@ flowchart LR
     CRM["CRM"]
     CHN["Channels"]
     MORE["Store, Reports, ..."]
-    DRV["Drivers<br/>Telegram, Meta"]
+    DRV["Module drivers<br/>Telegram, Meta"]
+    SYSDRV["System drivers<br/>mail, files"]
   end
   DB[("PostgreSQL<br/>users, where, links,<br/>system, data")]
 
@@ -550,13 +589,15 @@ flowchart LR
   OWNER --> APPDOOR
   CUST --> PUBDOOR
   OUT -->|"webhooks"| PUBDOOR
+  APPDOOR --> LOGIN
+  LOGIN -->|"system.* calls"| SHELL
   AIDOOR & APPDOOR & PUBDOOR --> SHELL
   SHELL -->|"Pass"| KERNEL
-  SHELL -.->|"users only"| DB
   INDEX & OGR & REG -.->|"asked"| KERNEL
   DAEMONS -->|"calls as system"| KERNEL
   KERNEL -->|"runs their code"| AIMOD & ERP & CRM & CHN & MORE
   KERNEL ==>|"reads and writes"| DB
+  KERNEL --> SYSDRV
   CHN --> DRV
   DRV -->|"send"| OUT
 ```
@@ -581,7 +622,8 @@ sequenceDiagram
 
   A->>W: sales today? raise latte to 50
   W->>S: app door, session cookie
-  S->>S: Shell: owner of nova, signs a Pass
+  S->>K: system.check_session (the cookie)
+  K-->>S: owner of nova, the Shell signs a Pass
   S->>G: relay the chat, acting for the owner
   G->>S: ai door: ai.find_syscalls
   S->>K: Pass: AI for the owner of nova
@@ -628,23 +670,29 @@ classDiagram
 
   class Gateway {
     +doors Door[]
+    +login Login
     +shell Shell
+  }
+  class Login {
+    +signUp(email)
+    +logIn(email, password) Session
+    +sendCode(email)
+    +logOut(session)
   }
   class Door {
     +kind app, ai, public, outside
     +receive(request) Result
   }
   class Shell {
-    -accounts Account[]
-    -sessions Session[]
-    +authenticate(credential) Account
+    +check(credential) Account
+    +readCommand(request) Command
     +issuePass(account, business) Pass
   }
   class Pass {
     <<record>>
     +account_id
     +business_id
-    +actor member, ai, system or customer
+    +actor member, ai, system, customer or gateway
     +expires_at
   }
   class Kernel {
@@ -728,6 +776,15 @@ classDiagram
     +receive(raw)* Message
     +send(account, message)* Sent
   }
+  class MailDriver {
+    <<system driver>>
+    +send(to, template, data) Sent
+  }
+  class FilesDriver {
+    <<system driver>>
+    +put(file) FileRef
+    +get(ref) File
+  }
   class TelegramDriver {
     +send(account, message) Sent
   }
@@ -736,9 +793,13 @@ classDiagram
   }
 
   Gateway *-- Door : has
+  Gateway *-- Login : has
   Gateway *-- Shell : has
+  Login ..> Shell : system calls
   Shell ..> Pass : issues
-  Door ..> Kernel : call with Pass
+  Shell ..> Kernel : call with Pass
+  Kernel *-- MailDriver : system drivers
+  Kernel *-- FilesDriver : system drivers
   Kernel ..> Index : whose?
   Kernel ..> OGR : what is it?
   Kernel ..> SyscallRegistry : finds
@@ -2423,7 +2484,9 @@ app-backend/
 ├── contracts/                          written once, read by every repo (4.4)
 │   ├── syscalls/                       one reference page per system call, one folder per module
 │   │   ├── core/  erp/  crm/  channels/  store/
-│   │   ├── studio/  marketing/  team/  reports/  ai/
+│   │   ├── studio/  marketing/  team/  reports/  ai/  ogr/
+│   │   ├── system/                     the internal system calls Login uses (2.9); never offered
+│   │   │                               to the app, the AI or outside callers
 │   │   └── (each page: purpose, inputs, output, errors, effects, rules, examples, changes)
 │   ├── packs/                          the essentials and one page per pack (7.3): module, needs,
 │   │                                   system calls, windows, skills, listeners, settings, setup skill
@@ -2449,8 +2512,10 @@ app-backend/
 │   │   ├── ai/                         the AI (service token plus who it acts for)
 │   │   ├── public/                     shop pages, chat widget, channel webhooks; rate limits
 │   │   └── outside/                    outside websites with API keys (term 2)
-│   ├── shell/                          who are you: sign up, log in, sessions, lock-out (7.6);
-│   │                                   owns the users section; signs the Pass
+│   ├── login/                          the log-in engine: sign up, log in, codes, passwords, Google,
+│   │                                   sessions, lock-out (7.6); asks the Kernel through system.* calls
+│   ├── shell/                          the only door into the Kernel: checks each command's
+│   │                                   credential and inputs, signs the Pass
 │   ├── streaming                       relays the AI's streamed answer to the app
 │   ├── realtime                        live updates: orders board, inbox, stock
 │   └── server.ts                       starts the program and puts the doors together
@@ -2465,6 +2530,10 @@ app-backend/
 │   ├── ogr/                            things and their links, per business
 │   ├── syscall-registry                loads the system call pages; filters by pack, role, face
 │   ├── approvals                       saves and checks approvals itself
+│   ├── system                          the internal system.* calls for Login: accounts, passwords,
+│   │                                   sessions, sending mail
+│   ├── drivers/                        the system's own drivers, used only by the Kernel:
+│   │                                   mail, files; push, sms (term 2)
 │   ├── audit                           audit row on every write
 │   ├── outbox                          the event, saved in the same transaction as the change
 │   ├── idempotency                     retried calls write once
