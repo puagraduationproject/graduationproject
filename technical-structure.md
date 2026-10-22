@@ -1,4 +1,7 @@
-# Technical Structure
+# EdaraPilot: Technical Structure
+
+> **EdaraPilot** is the product's name (agreed 2026-10-22): إدارة (*edara*,
+> management) plus *pilot*. It is the PUA Graduation Project.
 
 > The design of the whole product, both terms: what it is, who it is for, how
 > it is built, what each part owns, and how the AI runs the business. A living
@@ -74,7 +77,7 @@
 
 ## 0. The idea in one page
 
-**One AI for every small business.** An AI tool, like the AI assistants people
+**EdaraPilot: one AI for every small business.** An AI tool, like the AI assistants people
 already use, but made for running a business. Each business gets its own AI
 manager that knows only that business. It talks to customers, takes orders,
 handles complaints, watches stock and money, helps manage the staff, runs the
@@ -87,7 +90,7 @@ can pick the editor's own model or another one; every model uses the same tools.
 Here the owner talks to a model, and the model runs the business through the
 business's real system calls: every system call of its ERP and CRM.
 
-| AI code editor | PUA Graduation Project |
+| AI code editor | EdaraPilot |
 |----------------|-----------|
 | The app: chat, approvals, "ask before running" | The app: chat, cards, the AI's permissions (6.6) |
 | The tools: terminal, files, git | The system calls: every ERP and CRM system call (section 4) |

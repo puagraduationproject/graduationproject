@@ -1,13 +1,17 @@
-# Graduation Project
+# EdaraPilot
+
+The PUA Graduation Project. The product is named **EdaraPilot**: إدارة (*edara*,
+management) plus *pilot*.
 
 **One AI for every small business.** Each business gets its own AI manager,
 running on our own tuned open models, that talks to customers, takes orders,
 watches stock and cash, and tells the owner what needs attention. It does all of
-it through the tools of an open ERP and CRM. Showcase: coffee shops and small
+it through the system calls of an open ERP and CRM, which works like an
+operating system for a business. Showcase: coffee shops and small
 markets in Egypt, in Egyptian Arabic, Franco and English.
 
 This repository holds the project's documents: the design, the code layout and
-the term 1 plan. The code itself lives in three other repos ([below](#the-code)).
+the term 1 plan. The code itself lives in the other repos ([below](#the-code)).
 
 ## Documents
 
@@ -33,15 +37,15 @@ the term 1 plan. The code itself lives in three other repos ([below](#the-code))
 
 From section 0 of the technical structure:
 
-1. **The backend is an open ERP and CRM whose only door is its tools.** The app,
-   the AI and later outside websites use the same tools, with the same
-   permissions and the same audit
-2. **Tools say what is possible. Skills say how to do it well.** Tools are few
-   and stable; skills are written know-how that the owner can change by talking
+1. **The backend is an open ERP and CRM whose only door is its system calls.**
+   The app, the AI and later outside websites use the same system calls, with
+   the same checks and the same audit. Only its Kernel touches the data
+2. **System calls say what is possible. Skills say how to do it well.** System
+   calls are stable; skills are written know-how that the owner can change by talking
 3. **Use only what you need.** Every business gets the essentials; the rest is a
    library of packs it turns on and off. A template is a recommended set of packs
 4. **Any model, ours by default.** It works like an AI code editor, but for a
-   business: every model uses the same tools and skills. Our open models,
+   business: every model uses the same system calls and skills. Our open models,
    fine-tuned by the team, are the default; the owner may pick another,
    including a commercial one. Commercial models never make training data for
    ours. The owner decides what the AI may do alone
@@ -50,10 +54,11 @@ From section 0 of the technical structure:
 
 | Repo | Holds | Who |
 |------|-------|-----|
-| [`app-backend`](https://github.com/puagraduationproject/app-backend) | Contracts, platform, modules, database, fake backend, tests | Backend |
+| [`app-backend`](https://github.com/puagraduationproject/app-backend) | Contracts, gateway, kernel, daemons, modules, database, fake backend, tests | Backend |
 | [`app-web`](https://github.com/puagraduationproject/app-web) | Staff app, shop pages, landing page | Frontend |
-| `app-ai-agent` | The AI layer: faces, jobs, planner, skills | AI agent |
-| `app-ai-model` | Training, test set, results, serving | AI data |
+| [`app-ai-agent`](https://github.com/puagraduationproject/app-ai-agent) | The AI layer: faces, jobs, planner, skills | AI agent |
+| [`app-ai-model`](https://github.com/puagraduationproject/app-ai-model) | Training, test set, results, serving | AI data |
+| [`team-handoffs`](https://github.com/puagraduationproject/team-handoffs) | Requests between the subteams | Everyone |
 
 The folders inside each are in the [project structure](project-structure.md).
 
