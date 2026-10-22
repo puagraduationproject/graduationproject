@@ -26,6 +26,12 @@
 > business (2.9 to 2.11): a Gateway with its doors and the Shell, then the
 > Kernel, the only part that reads and writes business data, with the Index,
 > the OGR, the Registry, the Daemons, the modules and their drivers.
+>
+> Updated 2026-10-22: the business setup (7.7) follows what the team agreed
+> after the first deploy (`ALL-002`): language first, a short list of kinds
+> linked to their templates, "where is it?" instead of "who works in it?",
+> Arabic names give a handle, reserved brands, and a retry never makes a
+> second business.
 
 ---
 
@@ -238,7 +244,7 @@ One backend made of strict modules and one database. Not microservices.
 
 | Data | Owner |
 |------|-------|
-| Accounts, sessions, sign-in codes | Shell (2.9) |
+| Accounts, sessions, sign-in codes, setup steps | Shell (2.9) |
 | Businesses, members, roles, locations, templates, packs on per business, AI permission settings | Index (2.9) |
 | Things and the links between them | OGR (2.9) |
 | Audit log, outbox, approvals, jobs | Kernel and Daemons (2.9) |
@@ -500,7 +506,7 @@ One database (2.3), in five sections:
 
 | Section | Owner | Holds | Where it is today |
 |---------|-------|-------|-------------------|
-| users | Shell | accounts, sessions, devices, sign-in codes | `core` schema; moves to its own schema later |
+| users | Shell | accounts, sessions, devices, sign-in codes, setup steps | `core` schema; moves to its own schema later |
 | where | Index | businesses, members, roles, locations, templates, packs on, AI settings | `core` schema |
 | links | OGR | things and their links, per business | new `ogr` schema |
 | system | Kernel and Daemons | audit log, outbox, jobs, approvals | audit and outbox in `core`; jobs in the jobs library's tables |
@@ -1210,9 +1216,11 @@ The foundation every module stands on.
 ### 7.1 What it owns
 
 ```
-business          id, name, handle (unique, 7.7), business_type, currency,
-                  timezone, locale, template_key, team_size(alone|team),
-                  settings(jsonb), created_at
+business          id, name, handle (unique, 7.7), business_type, sells,
+                  currency, timezone, locale, template_key,
+                  team_size(alone|team, empty for new businesses),
+                  settings(jsonb), idempotency_key, created_by, created_at
+                  UNIQUE (created_by, idempotency_key)
 account           id, email (one account per email), email_verified_at, name,
                   phone, password_hash (empty for Google-only), google_id,
                   language, failed_logins, locked_until, created_at, updated_at
@@ -1221,6 +1229,7 @@ auth_ticket       id, account_id, ticket_hash, expires_at, used_at     (7.6)
 session           id, account_id, token_hash, browser, user_agent, first_ip,
                   last_ip, created_at, last_seen_at, proved_at, expires_at,
                   ended_at, end_reason                                 (7.6)
+setup_step        account_id, step, reached_at   (7.7; the first time only)
                   (every user_id points to account.id)
 membership        id, business_id, user_id, username, display_name, role,
                   invited_by, joined_at
@@ -1228,7 +1237,8 @@ membership        id, business_id, user_id, username, display_name, role,
 invite            id, business_id, phone_or_email, role, token_hash, expires_at
 role              business_id, name, permissions(jsonb)
                   defaults: owner, manager, staff, viewer
-location          id, business_id, name, address, area      (branches)
+location          id, business_id, name, city, area, address
+                  (the first one is made at setup, 7.7; more with branches)
 template          key, version, content(jsonb)              (files, versioned)
 pack              key, version, module, needs, content(jsonb) (files, versioned)
 business_pack     business_id, pack_key, status(on|off), settings(jsonb),
@@ -1431,37 +1441,77 @@ A checked code gives a short ticket (10 minutes, one use) that the next step
 Right after sign-up. It cannot be skipped: a person with no business always
 comes back to it (logging out is the only way out). The business setup needs
 sessions (the backend must know who is creating the business), so sessions
-come first. Today it is one form; the frontend turns it into one question per
-screen (`FE-003`).
+come first. One question per screen (`FE-003`), with Back on every step
+after the first and Log out on every step.
 
-**Asked before the business can be used, in this order** (the person first,
-then the business):
+**One exception:** an account with a pending invite goes to the invite, not to
+setup, so a barista who signs up from an invite link is never made to create a
+business. Built with invites.
 
-| Question | Why | Notes |
-|----------|-----|-------|
-| Your name | What the AI and the team call you | Only asked when Google did not give it |
-| Business name | Shown everywhere: the AI, the shop page, order messages | "Nova Café" |
-| Business handle | Its unique name in addresses and usernames | Filled in from the name (`nova`), the owner can change it |
-| Business type | Picks the template, so the packs it turns on (7.2, 7.3) | General kinds: café or coffee shop, restaurant or food, bakery or sweets, grocery or small market, pharmacy, clothes and fashion, phones and electronics, salon or beauty, other services, online shop, something else. **For now a type is only a name:** it links no template and turns nothing on; every business starts with the essentials until the team decides what each type means |
-| Just me or with a team | Decides only whether the next step offers inviting people, what Home shows, and what the AI suggests | One tap, default "just me". It never turns features on or off: features come from the type, and what each person may do comes from their role |
+**Asked before the business can be used, in this order** (agreed in
+`ALL-002`, 2026-10-21):
 
-One account can create at most 5 businesses (against abuse; can be raised).
+| # | Question | Why | Notes |
+|:-:|----------|-----|-------|
+| 1 | Language | Everything after it is in that language | Arabic picked by default; a switch at the top of every step. Saved on the account at once |
+| 2 | What should the AI call you? | What the AI and the team call you ("Ahmed" or "أستاذ أحمد") | Only asked when the account has no name (Google gives one) |
+| 3 | Business name, with its handle | Shown everywhere: the AI, the shop page, order messages | "Nova Café". The handle is filled in from the name, with a live preview of the shop page address and the team log-in (`moe@nova-cafe`); **Change** to edit it. Under it: "One name for the whole business. Branches come later" |
+| 4 | Kind of business | Picks the template, so the packs it turns on (7.2, 7.3) | A short list, grown as templates are built (see below). "Something else" asks **What do you sell?** (optional, kept in `sells`) |
+| 5 | Where is it? | The customer agent can answer "where are you?"; delivery areas start from it; the shop page needs it; the Market team sees which areas sign up | City (Egypt's 27 governorates, Cairo, Giza and Alexandria first) and the area, typed. Stored as the business's first location |
+| ✓ | Done | The reward: the handle starts to mean something | The shop page address, the three first-step buttons of the first Home (17.1), and one line with the defaults: Arabic · EGP · Cairo time. Then Home |
 
-**Filled in, changeable in Settings:** language (Arabic), currency (EGP), time
-zone (Cairo), the packs from the type, the AI model (Auto), the owner's
-username.
+**Kinds of business,** to start (the Market team confirms the list from the
+interviews):
+
+| Kind | Template |
+|------|----------|
+| Café or coffee shop | `coffee_shop` |
+| Small market | `small_market` |
+| Grocery | `small_market`, with different packs on later (one template until they need different stages, fields or skills) |
+| Bakery or sweets, restaurant, something else | none yet: they start with the essentials, and the app says so ("We're starting with cafés and markets") |
+
+Pharmacy is not offered: drug prices and prescriptions are regulated, and an
+AI answering "can I take X with Y?" is a medical and legal risk, until a
+template with hard rules exists. "Online shop" is a way of selling, not a kind.
+"Who works in it?" is not asked: a yes or no says too little, and the team
+pack asks what matters later.
+
+**Rules:**
+
+- One account can create at most 5 businesses (against abuse; can be raised).
+  The sixth answers `business_limit`, not a "wait and try again"
+- The app makes one retry key per setup and sends it with every try, so a lost
+  reply never makes a second business (2.1)
+- The first time each account reaches each step is recorded, to see where
+  people stop and how long setup takes
+
+**Filled in, changeable in Settings:** currency (EGP), time zone (Cairo), the
+packs from the kind, the AI model (Auto), the owner's username.
 
 **Asked later, when first needed** (by the AI in the chat, or in Settings): the
 menu or products (the AI asks for a photo first, and it can be skipped),
-opening hours, address and area, phone, delivery areas and fees, tables,
+opening hours, the street address, phone, delivery areas and fees, tables,
 logo, team members, Telegram.
 
 **Names work like email addresses:**
 
 - The **business handle** is unique across all businesses (`nova`): 3 to 30
-  lowercase letters, digits and dashes, no dots, not one of our own words
-  (`login`, `api`, `admin`, ...). It is used in the shop page address, invite
-  links and the business's log-in
+  lowercase letters, digits and dashes, no dots. It is used in the shop page
+  address, invite links, QR codes and the business's log-in, so setup asks to
+  pick it with care and promises no change later (26)
+- **From the name, in one place in the backend,** so the app, the AI and
+  imports get the same answer: Arabic is written in Latin letters the way
+  Egyptians write names in chats (`كافيه النيل` gives `kafeh-elnil`), accents
+  are dropped (`Nova Café` gives `nova-cafe`), and a name that gives fewer
+  than 3 characters gets `shop-` and four digits
+- **Reserved handles** no business can take: our own words (`login`, `api`,
+  `admin`, ...), paths we will need later (`menu`, `order`, `pay`, `invite`,
+  `join`, `verify`, `official`, ...), known chains and brands in Egypt
+  (`starbucks`, `cilantro`, `seoudi`, `talabat`, ...; only names that are a
+  brand first, so a café can still be "Panda"), and our own brand name once
+  chosen. Anyone else's claim goes through report and reclaim: proof, a check
+  within 7 days, and 7 days for the owner to pick a new handle (who owns it is
+  open, 26)
 - Each person has a **username inside each business** (`ahmed`), unique only
   in that business. Together they read **`ahmed@nova`**, like an email: the
   same person can be `ahmed@nova` and `ahmed@bean`, with one account
@@ -1470,8 +1520,8 @@ logo, team members, Telegram.
   staff, viewer), and roles can change without changing the name
 - The username starts from the person's first name in Latin letters
   (`ahmed@nova`), or from the email before the `@` when the name has none (an
-  Arabic name). It is not shown or asked during setup; the person sees and
-  changes it later in Settings. Each business also keeps a **display
+  Arabic name). It is not asked during setup, only shown in the handle's
+  preview; the person changes it later in Settings. Each business also keeps a **display
   name** for them ("Mr. Ahmed"), from their name
 - Because handles have no dots, the log-in box tells the two apart:
   `ahmed@gmail.com` is an email, `ahmed@nova` is a business username
@@ -2145,7 +2195,7 @@ the flow of Claude's app is the reference, not its look):
 
 | # | Window | Who | What is in it | Term |
 |:-:|--------|-----|---------------|:----:|
-| 1 | Sign up and setup | New owner | Account (7.6), then the business setup (7.7): your name, business name, handle, type, just me or a team. The menu photo and the rest come on the first Home (17.1) | 1 |
+| 1 | Sign up and setup | New owner | Account (7.6), then the business setup (7.7): language, what the AI should call you, business name and handle, kind, where it is, then the done screen. The menu photo and the rest come on the first Home (17.1) | 1 |
 | 2 | **Home: AI chat** | Everyone in the business | Briefing cards, the chat, threads, side panel | 1 |
 | 3 | Sales screen | Cashier, barista | Big buttons, cart, payment, shift open and close with the cash count | 1 |
 | 4 | Orders | Staff | Board of open orders by stage | 1 |
@@ -2320,7 +2370,7 @@ flowchart LR
 | Part | Where |
 |------|-------|
 | Staff app | `app.<domain>`, installable on phone and tablet; a mobile app for notifications in term 2 |
-| Shop pages | `<domain>/<shop>`, or the shop's own domain in term 2 |
+| Shop pages | `<domain>/<shop>` for now (the format is open, 26), or the shop's own domain in term 2 |
 | Backend, AI layer, database | Our server (to be arranged) |
 | Models | Rented GPUs, turned off when not needed |
 
@@ -2669,3 +2719,14 @@ Decisions still open before the structure is final:
 9. **The ai door as an MCP server:** whether the AI reaches the system calls
    through MCP, so any agent that speaks it can use them. The AI team agrees
    it with the backend
+10. **The shop page address:** `<shop>.<domain>` (reads best on a QR code,
+    needs wildcard DNS and certificates), `<domain>/s/<shop>` (needs nothing
+    new), or `<domain>/<shop>` with a long reserved list (today). The first
+    two end clashes between handles and our own pages for good
+11. **Can a handle change?** Backend's suggestion: not in term 1; later yes,
+    with old handles redirecting and never given to another business
+12. **Who keeps the brand list and handles reclaim requests:** Security or
+    Backend
+13. **The kinds of business and the places list:** the Market team confirms
+    the kinds from the interviews; whether the 27 governorates and a typed
+    area are detailed enough
