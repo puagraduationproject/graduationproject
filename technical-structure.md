@@ -41,6 +41,11 @@
 > works beside it. All of them live in one folder, `os/`. Each system call
 > gets a JSON file next to its page, which the Registry and the AI read.
 >
+> Updated 2026-10-22: the Shell and the Kernel are two services; the Kernel
+> runs calls on several cores in parallel. Between them, every message is
+> sealed with AES-256-GCM under a key that changes every 5 minutes, and the
+> Kernel checks the person's session token itself (2.9).
+>
 > Updated 2026-10-22: the business setup (7.7) follows what the team agreed
 > after the first deploy (`ALL-002`): language first, a short list of kinds
 > linked to their templates, "where is it?" instead of "who works in it?",
@@ -442,13 +447,47 @@ chat, `erp.create_item` adds a product.
 - **Shell:** the only door into the Kernel. It takes every command (system
   call) as it comes in: it checks the session, the token, the API key, or
   the secret an outside service sends with its webhook; reads the command and
-  checks its inputs have the right shape; then signs a **Pass** for that one
-  call and hands it to the Kernel. It answers "who is sending this command,
-  and for which business?" on every call. It never reads or writes data.
+  checks its inputs have the right shape; then seals the call into a **Pass**
+  and hands it to the Kernel. It never reads or writes data.
 
-A Pass holds `account_id`, `business_id`, the actor (a member, the AI and who
-it acts for, the system, a customer, or the Gateway itself for log-in) and
-when it expires. A request without a valid Pass never reaches the Kernel.
+A Pass is the sealed call: the business it is for, the actor (a member, the
+AI and who it acts for, the system, a customer, or the Gateway itself for
+log-in), the person's session token, the call and its input. The Kernel
+checks the session token itself (it made it, at log-in), so the Shell cannot
+claim to be someone else. The business ID tells the Directory where to look:
+even a token with every permission sees only its own business's data. A
+request without a valid Pass never reaches the Kernel.
+
+**The Shell and the Kernel are two services.** Each runs on its own, so one
+falling does not take the other down; each comes back by itself. It is still
+one backend: one repo, one image started two ways, one database, and only
+the Kernel connects to it. The Kernel has **cores**, like a CPU: a small
+manager starts several cores (as many as the server's CPUs), each core a
+server by itself, so calls run in parallel and one person never waits for
+another's call. A heavy call holds at most one core; long work is a job (the
+Daemons). If a core dies, the manager starts a new one and the others keep
+answering.
+
+**The protocol between them** (the full page is in the contracts:
+`contracts/protocol/`) defines how they connect and in what format:
+
+- **Connection:** HTTP over TCP inside our network only. A **sure** call
+  waits for its answer within its time limit, and with no answer the Shell
+  sends it again with the same retry key, so a write happens once. A **fire
+  and forget** call is sent once and nobody waits. Each call's JSON file says
+  which kind it is, its time limit and its tries.
+- **The seal:** every message, both ways, is encrypted and sealed with
+  AES-256-GCM: nobody on the line can read it, a changed byte is refused, and
+  only the holder of the key could have sent it. The key changes every 5
+  minutes: the Shell asks, and the Kernel sends the new key sealed with the
+  current one; the old key works for 60 more seconds so no call fails.
+  Both start with a start key from the settings, used only to get the first
+  key. Each request has an ID and the time it was sent; a request seen before
+  or older than 30 seconds is refused.
+- **Format:** one shape for every call (`request_id`, `sent_at`, `call`,
+  `version`, `business_id`, `session`, `input`, `idempotency_key`,
+  `correlation_id`) and one for every answer (`ok` with `result`, or an error
+  code and its details).
 
 **Internal system calls (`system.*`)** are the calls Login needs before
 anyone is logged in: `system.find_account`, `system.create_account`,
@@ -2518,6 +2557,7 @@ app-backend/
 │   │                                   plan, post
 │   ├── values/                         IDs, money, order statuses, roles, channels, payment methods,
 │   │                                   AI permission settings
+│   ├── protocol/                       how the Shell and the Kernel connect, the seal, the format
 │   ├── errors/                         error codes
 │   ├── limits/                         password, code expiry, lock-out, upload size, rate limits
 │   ├── training/                       training example format (the AI team owns it)
@@ -2537,13 +2577,15 @@ app-backend/
 │   │   └── outside/                    outside websites with API keys (term 2)
 │   ├── login/                          the log-in engine: sign up, log in, codes, passwords, Google,
 │   │                                   sessions, lock-out (7.6); asks the Kernel through system.* calls
-│   ├── shell/                          the only door into the Kernel: checks each command's
-│   │                                   credential and inputs, signs the Pass
+│   ├── shell/                          the only door into the Kernel, its own service: checks each
+│   │                                   command's inputs, seals the Pass, changes the key every 5 min
 │   ├── streaming                       relays the AI's streamed answer to the app
 │   ├── realtime                        live updates: orders board, inbox, stock
 │   └── server.ts                       starts the program and puts the doors together
 ├── os/                                 mode 0: the Kernel and the parts around it (2.9)
 │   ├── kernel/                         the CPU: processes each call; the only database connection
+│   │   ├── cores                       the manager and its cores: calls in parallel; a dead core
+│   │   │                               is started again; holds the keys
 │   │   ├── call                        takes a system call with its Pass and runs it in one
 │   │   │                               transaction: change, audit row, outbox, OGR links
 │   │   ├── checks                      may he, same business, data rules, already done, limits
@@ -2565,7 +2607,8 @@ app-backend/
 │   ├── dry-run/                        runs system calls with no real writes, for skill test runs
 │   └── shared/                         small helpers every part uses: numbering (#1042 per
 │                                       business), money (whole piastres plus currency),
-│                                       errors (codes, never message text)
+│                                       errors (codes, never message text), seal (the protocol's
+│                                       AES-256-GCM, used by the Shell and the Kernel)
 ├── daemons/                            always running; they call the Kernel as "system"
 │   ├── events                          delivers the outbox to listeners, retries, listener registry
 │   ├── jobs                            every few minutes or at a set time: expiring stock, quiet
