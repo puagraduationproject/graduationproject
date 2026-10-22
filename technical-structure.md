@@ -35,6 +35,12 @@
 > Kernel is the only part that touches the database and the only one that
 > uses drivers, including the system's own drivers (email, files).
 >
+> Updated 2026-10-22: the Kernel works like a CPU: it only processes calls and
+> holds the only database connection; every other part (the Directory, before
+> called the Index; the OGR; the Registry; audit; outbox; the system drivers)
+> works beside it. All of them live in one folder, `os/`. Each system call
+> gets a JSON file next to its page, which the Registry and the AI read.
+>
 > Updated 2026-10-22: the business setup (7.7) follows what the team agreed
 > after the first deploy (`ALL-002`): language first, a short list of kinds
 > linked to their templates, "where is it?" instead of "who works in it?",
@@ -253,7 +259,7 @@ One backend made of strict modules and one database. Not microservices.
 | Data | Owner |
 |------|-------|
 | Accounts, sessions, sign-in codes, setup steps | Login (2.9), stored through the Kernel |
-| Businesses, members, roles, locations, templates, packs on per business, AI permission settings | Index (2.9) |
+| Businesses, members, roles, locations, templates, packs on per business, AI permission settings | Directory (2.9) |
 | Things and the links between them | OGR (2.9) |
 | Audit log, outbox, approvals, jobs | Kernel and Daemons (2.9) |
 | Business profile, notifications | Core |
@@ -271,7 +277,7 @@ One backend made of strict modules and one database. Not microservices.
 
 | Schema | Module |
 |--------|--------|
-| `core` | Core, and for now Login's accounts and sessions, the Index, the audit log and the outbox |
+| `core` | Core, and for now Login's accounts and sessions, the Directory, the audit log and the outbox |
 | `ogr` | OGR |
 | `erp` | ERP |
 | `crm` | CRM |
@@ -402,12 +408,13 @@ chat, `erp.create_item` adds a product.
 
 | Computer | Ours |
 |----------|------|
-| User mode and kernel mode | The Gateway (mode 1) and the Kernel side (mode 0) |
+| User mode and kernel mode | The Gateway (mode 1) and the OS (mode 0) |
 | The log-in program | Login |
 | Shell: runs each command with your identity | Shell |
-| Kernel | Kernel |
+| The CPU: processes each instruction, the only one that reaches memory | Kernel: processes each call, the only one that reaches the database |
+| The chips around the CPU | The OS's parts: Directory, OGR, Registry, audit, outbox, approvals, system drivers |
 | System calls (`read`, `write`, `open`) | System calls of each module (`erp.create_item`) |
-| Users, groups, home folders | Index |
+| Users, groups, home folders | Directory |
 | Links between files | OGR |
 | Daemons, cron | Daemons |
 | Drivers: the system's own, and a program's | System drivers (email, files) and module drivers (Telegram, Meta, payments) |
@@ -452,18 +459,27 @@ never offered to the app, the AI or outside callers, and they are checked,
 limited and audited like any other call. The flow of a log-in is: Login →
 Shell → Kernel → Shell → Login.
 
-**Kernel side (mode 0): the only place data is touched.**
+**The OS (mode 0): the Kernel and the parts around it.** All of it lives in
+one folder, `os/` (21.2).
 
-- **Kernel:** takes a system call with its Pass and runs it. It is the only
-  part that reads and writes data (business data and accounts alike), and the
-  only part that uses drivers. Before every call it runs
-  five checks, and it can block a call even when the AI or a person approved
-  it:
+The Kernel works like a CPU: it only **processes** calls. It manages
+nothing itself and owns no data; each part around it does its own job (the
+Directory knows who belongs where, the Registry knows every call, the audit
+writes the audit row, the drivers talk to mail and files). And like the CPU
+is the only one that reaches memory, the Kernel holds the only connection to
+the database: the parts around it work inside the transaction the Kernel
+hands them, and never open the database themselves.
+
+- **Kernel:** takes a system call with its Pass and processes it. It is the
+  only part that reaches the data (business data and accounts alike), and the
+  only part that calls drivers. Before every call it runs five checks, asking
+  the parts around it, and it can block a call even when the AI or a person
+  approved it:
   1. **May he:** the role, the packs on, the face, and the owner's AI
      settings (6.6), with the approval when the call needs one. The Kernel
      checks the approval itself; it never trusts an approval ID it is handed
   2. **Same business:** every thing the call touches belongs to the Pass's
-     business (asked of the Index and the OGR)
+     business (asked of the Directory and the OGR)
   3. **Data rules:** the module's rules, such as stock never going below zero
      by mistake, or a post never scheduled in the past
   4. **Already done:** a retried call with the same retry key writes once
@@ -473,7 +489,7 @@ Shell → Kernel → Shell → Login.
   runs the module's code, writes the change, the audit row and the event
   (outbox), and records new things and links in the OGR. Either all of it is
   saved, or none of it.
-- **Index:** answers "whose is it, and what may this person do?". It owns
+- **Directory:** answers "whose is it, and what may this person do?". It owns
   the where section: businesses, members, roles, locations, templates, the
   packs on for each business, and the AI settings (7.1). It is what keeps one
   business's data apart from every other's, like home folders on a computer.
@@ -489,10 +505,13 @@ Shell → Kernel → Shell → Login.
   (what one ID is: its kind, its module, its label) and `ogr.list_links`
   (what it is linked to, up to 3 steps away). Only the Kernel writes the OGR,
   so it has no write system calls
-- **Registry:** every system call, read from its page in the contracts (4.4),
-  with its module, pack, the roles that may use it and the AI's default
-  setting. The Kernel finds calls there; `ai.find_syscalls` lists the ones
-  this person may use.
+- **Registry:** every system call, read from its **JSON file** in the
+  contracts, next to its page (4.4): its inputs and outputs, module, pack, the
+  roles that may use it, the AI's default setting, and its own rules. The JSON
+  file is what the AI reads to know which commands it can use, and the
+  contract every other part builds on. Each call's rules are filled in when
+  that call is built. The Kernel finds calls there; `ai.find_syscalls` lists
+  the ones this person may use.
 - **Daemons:** the parts that always run. They deliver events from the outbox
   to the listeners, run jobs every few minutes or at a set time (expiring
   stock, the morning briefing, scheduled posts), and retry what failed (a
@@ -547,14 +566,14 @@ One database (2.3), in five sections:
 | Section | Owner | Holds | Where it is today |
 |---------|-------|-------|-------------------|
 | users | Login (through the Kernel) | accounts, sessions, devices, sign-in codes, setup steps | `core` schema; moves to its own schema later |
-| where | Index | businesses, members, roles, locations, templates, packs on, AI settings | `core` schema |
+| where | Directory | businesses, members, roles, locations, templates, packs on, AI settings | `core` schema |
 | links | OGR | things and their links, per business | new `ogr` schema |
 | system | Kernel and Daemons | audit log, outbox, jobs, approvals | audit and outbox in `core`; jobs in the jobs library's tables |
 | data | each module | one schema per module: `erp`, `crm`, `channels`, `store`, `reports`, `ai`, ... | as in 2.3 |
 
 The Core of section 7 is therefore not one part any more: its sign-up and
 log-in (7.6) are Login, its businesses, members, roles and packs are the
-Index, and its audit, outbox and scheduler (7.4) are the Kernel and the
+Directory, and its audit, outbox and scheduler (7.4) are the Kernel and the
 Daemons.
 
 #### How every part connects
@@ -572,8 +591,8 @@ flowchart LR
     LOGIN["Login<br/>sign up, log in,<br/>sessions"]
     SHELL["Shell<br/>checks each command,<br/>signs a Pass"]
   end
-  subgraph KS["Kernel side: mode 0"]
-    INDEX["Index<br/>whose? role?"]
+  subgraph KS["OS: mode 0"]
+    INDEX["Directory<br/>whose? role?"]
     OGR["OGR<br/>what is linked"]
     REG["Registry<br/>system calls"]
     DAEMONS["Daemons<br/>events, jobs, retries"]
@@ -619,7 +638,7 @@ sequenceDiagram
   participant G as AI agent
   participant M as Model
   participant K as Kernel
-  participant X as Index, OGR, Registry
+  participant X as Directory, OGR, Registry
   participant DB as PostgreSQL
   participant D as Daemons
 
@@ -636,7 +655,7 @@ sequenceDiagram
   M-->>G: call reports.get_sales
   G->>S: ai door: reports.get_sales
   S->>K: Pass
-  K->>X: Index: is he in nova? may he read sales?
+  K->>X: Directory: is he in nova? may he read sales?
   K->>DB: read inside nova (row-level security)
   DB-->>K: nova's rows
   K-->>G: 37 orders, 4,250 EGP
@@ -649,7 +668,7 @@ sequenceDiagram
   K->>DB: save the approval
   G->>S: ai door: erp.change_price with a retry key
   S->>K: Pass
-  K->>X: Index: role, pack. OGR: the latte is nova's
+  K->>X: Directory: role, pack. OGR: the latte is nova's
   Note over K: 5 checks: may he, same business, data rules, already done, limits
   K->>DB: price + audit row + PriceChanged, one transaction
   K-->>G: done
@@ -706,7 +725,7 @@ classDiagram
     -alreadyDone(retry_key) bool
     -withinLimits(pass, input) bool
   }
-  class Index {
+  class Directory {
     +businesses Business[]
     +members Member[]
     +packsOn Pack[]
@@ -803,7 +822,7 @@ classDiagram
   Shell ..> Kernel : call with Pass
   Kernel *-- MailDriver : system drivers
   Kernel *-- FilesDriver : system drivers
-  Kernel ..> Index : whose?
+  Kernel ..> Directory : whose?
   Kernel ..> OGR : what is it?
   Kernel ..> SyscallRegistry : finds
   Kernel ..> Event : saves
@@ -2485,7 +2504,8 @@ app-backend/
 ├── README.md                           what it is, how work happens, the other repos
 ├── rules/                              one page each: parts, architecture, modules, system calls, events, contracts
 ├── contracts/                          written once, read by every repo (4.4)
-│   ├── syscalls/                       one reference page per system call, one folder per module
+│   ├── syscalls/                       per system call: its page and its JSON file (what the
+│   │                                   Registry and the AI read), one folder per module
 │   │   ├── core/  erp/  crm/  channels/  store/
 │   │   ├── studio/  marketing/  team/  reports/  ai/  ogr/
 │   │   ├── system/                     the internal system calls Login uses (2.9); never offered
@@ -2522,29 +2542,30 @@ app-backend/
 │   ├── streaming                       relays the AI's streamed answer to the app
 │   ├── realtime                        live updates: orders board, inbox, stock
 │   └── server.ts                       starts the program and puts the doors together
-├── kernel/                             mode 0: the only part that reads and writes business data
-│   ├── call                            takes a system call with its Pass and runs it in one
-│   │                                   transaction: change, audit row, outbox, OGR links
-│   ├── checks                          may he, same business, data rules, already done, limits
-│   ├── tenancy                         every call inside one business (row-level security)
-│   ├── context                         business, actor, correlation ID, retry key on every call (2.6)
-│   ├── index/                          businesses, members, roles, locations, templates, packs on,
+├── os/                                 mode 0: the Kernel and the parts around it (2.9)
+│   ├── kernel/                         the CPU: processes each call; the only database connection
+│   │   ├── call                        takes a system call with its Pass and runs it in one
+│   │   │                               transaction: change, audit row, outbox, OGR links
+│   │   ├── checks                      may he, same business, data rules, already done, limits
+│   │   ├── tenancy                     every call inside one business (row-level security)
+│   │   └── context                     business, actor, correlation ID, retry key on every call (2.6)
+│   ├── directory/                      businesses, members, roles, locations, templates, packs on,
 │   │                                   AI settings; whose is it, what may he do
 │   ├── ogr/                            things and their links, per business
-│   ├── syscall-registry                loads the system call pages; filters by pack, role, face
-│   ├── approvals                       saves and checks approvals itself
-│   ├── system                          the internal system.* calls for Login: accounts, passwords,
+│   ├── registry/                       loads every system call's JSON file; filters by pack, role, face
+│   ├── system/                         the internal system.* calls for Login: accounts, passwords,
 │   │                                   sessions, sending mail
-│   ├── drivers/                        the system's own drivers, used only by the Kernel:
+│   ├── drivers/                        the system's own drivers, called only by the Kernel:
 │   │                                   mail, files; push, sms (term 2)
-│   ├── audit                           audit row on every write
-│   ├── outbox                          the event, saved in the same transaction as the change
-│   ├── idempotency                     retried calls write once
-│   ├── undo                            runs a system call's undo from the audit log
-│   ├── dry-run                         runs system calls with no real writes, for skill test runs
-│   ├── numbering                       #1042 per business
-│   ├── money                           whole piastres plus currency
-│   └── errors                          error codes, never message text
+│   ├── audit/                          audit row on every write
+│   ├── outbox/                         the event, saved in the same transaction as the change
+│   ├── approvals/                      saves and checks approvals itself
+│   ├── idempotency/                    retried calls write once
+│   ├── undo/                           runs a system call's undo from the audit log
+│   ├── dry-run/                        runs system calls with no real writes, for skill test runs
+│   └── shared/                         small helpers every part uses: numbering (#1042 per
+│                                       business), money (whole piastres plus currency),
+│                                       errors (codes, never message text)
 ├── daemons/                            always running; they call the Kernel as "system"
 │   ├── events                          delivers the outbox to listeners, retries, listener registry
 │   ├── jobs                            every few minutes or at a set time: expiring stock, quiet

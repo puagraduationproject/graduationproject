@@ -188,7 +188,7 @@ before it is built.
 
 | Subteam | People | Owns | Works in |
 |---------|:------:|------|----------|
-| Backend | 2 CS | The Core, ERP, CRM, Channels, Store and Reports modules; the Gateway (the four doors, Login, the Shell) and the Kernel side (tenancy, the Kernel's checks, the Index with packs and permissions, the OGR, the system call registry, the Daemons with events and jobs, undo, dry run); the system call reference pages; the fake backend; the online version | `app-backend` |
+| Backend | 2 CS | The Core, ERP, CRM, Channels, Store and Reports modules; the Gateway (the four doors, Login, the Shell) and the OS in `os/` (the Kernel with tenancy and its checks, the Directory with packs and permissions, the OGR, the system call registry, the Daemons with events and jobs, undo, dry run); the system call reference pages; the fake backend; the online version | `app-backend` |
 | Frontend | 2 CS | The chat-first app (windows 1 to 9), the shop page and order status (13, 14), the landing page (15), the shared cards | `app-web` |
 | AI agent | 2 AI | The AI layer: both faces, jobs, the planner, approvals, permission settings, the business brain, core and template skills, system call loading and `ai.find_syscalls` | `app-ai-agent` |
 | AI data | 2 AI | The models: base model choice per tier, training data, fine-tuning, serving, the test set, results | `app-ai-model` |
@@ -205,8 +205,8 @@ before it is built.
 ### 3.1 Backend: two tracks
 
 The backend works like an operating system for a business (2.9 in the design).
-One backend member takes the Gateway and the Kernel side (the doors, Login, the Shell,
-the Kernel and its checks, the Index, the OGR, the Registry, the Daemons); the
+One backend member takes the Gateway and the OS (the doors, Login, the Shell,
+the Kernel and its checks, the Directory, the OGR, the Registry, the Daemons); the
 other takes the modules. They meet at the system call pages.
 
 | Week | Gateway and Kernel track | Modules track |
