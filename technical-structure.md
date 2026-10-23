@@ -51,6 +51,11 @@
 > linked to their templates, "where is it?" instead of "who works in it?",
 > Arabic names give a handle, reserved brands, and a retry never makes a
 > second business.
+>
+> Updated 2026-10-23: every part of the business opens as a full page, with
+> the AI panel beside it that the person can hide; what the AI makes or
+> changes is a preview (the work panel on Home, on the page elsewhere) until
+> it is approved (17.1).
 
 ---
 
@@ -2269,8 +2274,8 @@ offered only when the packs it needs are on.
 | Inbox         2   |   | [+]                    [Ask first v] [mic]|   |
 | Approvals     1   |   +-------------------------------------------+   |
 | Recent threads    |                                                   |
-| Pinned            |   Opened cards and pages show in a side panel:    |
-| Settings          |   the orders board, a recipe, a purchase order.   |
+| Pinned            |   What the AI makes or changes shows in the work  |
+| Settings          |   panel beside the chat, waiting for Approve.     |
 | Ahmed - Owner     |                                                   |
 +-------------------+---------------------------------------------------+
 ```
@@ -2312,6 +2317,35 @@ the flow of Claude's app is the reference, not its look):
   are not logged in, and Home is `/home`; a logged-in person who opens `/`
   goes to Home. Later the app moves to `app.<domain>` (20) with Home at `/`
 - Until the AI layer is connected, the chat box answers from the fake backend
+
+**Pages, the AI panel and the work panel** (agreed 2026-10-23). Like an AI code
+editor: the code fills the screen, the chat sits beside it, and a change shows
+as a preview until the developer accepts it.
+
+- **A part of the business is a full page.** Tapping Orders, Menu and stock,
+  Customers or any other part in the sidebar opens it as its own page with its
+  own address, not inside the chat
+- **The AI is always there.** Every page of the staff app has the **AI panel**
+  on its end side (the right in English, the left in Arabic): the same chat as
+  Home, with the same threads, the model picker and Ask first / Act alone. The
+  person hides it or shows it with one button, and the app remembers the
+  choice per page. On phones it opens over the page. It is closed at first on
+  the sales screen, where the cashier needs the room (18.5)
+- **The AI knows where the person is.** A message from the panel carries the
+  page and the thing selected ("this order", "the latte"), so "make this one
+  ready" needs no more words
+- **What the AI makes or changes is a preview until approved.** On Home it
+  opens in the **work panel**, beside the chat; on a page it shows on the page
+  itself, marked as waiting ("Latte 70 → 75 EGP"). Nothing changes in the
+  business until someone with the right role taps Approve; the approval card
+  (6.6) and the plan card (6.5) sit in the chat, and an action done with Act
+  alone shows its result with **Undo** where there is one
+- **The work panel** shows three things: a preview waiting for approval, a
+  result after Act alone, and a thing the person opened from a card (an
+  order, a recipe, a purchase order), with a link to its full page. It holds
+  only the app's own cards and pages, never content the model made up, and
+  opens only when there is something to show. On phones it opens over the
+  chat with a back button
 
 ### 17.2 Windows: 15
 
