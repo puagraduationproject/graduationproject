@@ -46,6 +46,16 @@
 > sealed with AES-256-GCM under a key that changes every 5 minutes, and the
 > Kernel checks the person's session token itself (2.9).
 >
+> Updated 2026-10-24: the database is a grid (2.3). Each part is a schema, and
+> every part except the Directory is split by business ID into one slot per
+> business. The Directory is the map above them all: where each business
+> lives, and which business each log-in belongs to. Accounts and Sessions are
+> two OS parts, split by business. **One log-in, one business:** an account
+> lives inside its business; `username@handle` is everyone's log-in, and an
+> email or Google account belongs to one business only. Sign-up makes the
+> business and its owner together (7.6, 7.7). A business can set its own entry
+> rules (approved devices, hours).
+>
 > Updated 2026-10-22: the business setup (7.7) follows what the team agreed
 > after the first deploy (`ALL-002`): language first, a short list of kinds
 > linked to their templates, "where is it?" instead of "who works in it?",
@@ -158,7 +168,7 @@ flowchart TD
   AI -->|"no skill fits"| TL
   TL --> MOD["Modules: Core, ERP, CRM, Channels, Store, Studio, Marketing, Team, Reports"]
   TL --> OUT["Outside system calls through drivers: channels, payments, couriers, image model"]
-  MOD --> DB[("One database, one schema per module")]
+  MOD --> DB[("One database: a schema per part,<br/>a slot per business")]
 ```
 
 ---
@@ -259,7 +269,10 @@ One backend made of strict modules and one database. Not microservices.
 - Numbers people read are per business (order #1042, purchase #33), not random IDs
 - Idempotency keys on anything that can be retried (orders, webhooks, AI actions)
 - Order lines snapshot name, price and cost at the time of sale
-- Every business-scoped table has `business_id`, locked by row-level security
+- Every business-scoped table has `business_id` and is split by it: each
+  business has its own slot of every table of the parts it uses (2.3), locked
+  by row-level security on top
+- The business ID never changes; the handle is only a label on it
 - Events go through an outbox, written in the same transaction as the change
 - Outside services (channels, payments, couriers, image model) sit behind drivers
 - A test that tries to read another business's data, and must fail
@@ -268,11 +281,13 @@ One backend made of strict modules and one database. Not microservices.
 
 | Data | Owner |
 |------|-------|
-| Accounts, sessions, sign-in codes, setup steps | Login (2.9), stored through the Kernel |
-| Businesses, members, roles, locations, templates, packs on per business, AI permission settings | Directory (2.9) |
+| Where each business lives, its handle, which business each log-in (email, Google) belongs to, sign-ups in progress | Directory (2.9), not split |
+| Accounts in each business: username, role, password, the second step, lock-out, log-in methods, invites | Accounts (2.9), split by business |
+| Sessions and devices | Sessions (2.9), split by business |
+| Each business's profile, what each role may do, locations, packs on, AI permission settings, entry rules | Core, inside each business's slots |
 | Things and the links between them | OGR (2.9) |
 | Audit log, outbox, approvals, jobs | Kernel and Daemons (2.9) |
-| Business profile, notifications | Core |
+| Notifications | Core |
 | Items, recipes, stock, sales, orders, payments, shifts, suppliers, purchases, credit, expenses | ERP |
 | Customers, identities, timeline, loyalty, support cases, bookings, segments, consent | CRM |
 | Channel accounts, conversations, messages, auto-replies | Channels |
@@ -283,24 +298,73 @@ One backend made of strict modules and one database. Not microservices.
 | Summary numbers | Reports |
 | Skills, plans, memory, threads, knowledge, AI action log | AI module (its own data only; business data only through system calls) |
 
-### 2.3 One database, one schema per module
+### 2.3 One database, as a grid
 
-| Schema | Module |
-|--------|--------|
-| `core` | Core, and for now Login's accounts and sessions, the Directory, the audit log and the outbox |
-| `ogr` | OGR |
-| `erp` | ERP |
-| `crm` | CRM |
-| `channels` | Channels |
-| `store` | Store website |
-| `studio` | Studio |
-| `marketing` | Marketing |
-| `team` | Team |
-| `reports` | Reports |
-| `ai` | AI module |
+The database is a grid. The **columns** are the parts, each a schema of its
+own. The **rows** are the businesses: every part except the Directory is
+split by business ID into one slot per business (a PostgreSQL partition).
+The code sees one table, `erp.order`; inside, business 1042's orders sit in
+their own slot. A query for 1042 opens only that slot.
 
-Only the Kernel opens the database (2.9). For each system call it switches to
-the owning module's database user, which has rights only on that module's
+```mermaid
+flowchart LR
+  subgraph osParts [OS parts]
+    D["directory: the map, not split"]
+    A["accounts"]
+    S["sessions"]
+    K["kernel: idempotency, ..."]
+  end
+  subgraph businessParts [Business parts]
+    C["core"]
+    E["erp"]
+    R["crm"]
+    CH["channels"]
+  end
+  subgraph slots [One row per business ID]
+    B1["business 1042: accounts, sessions, core, erp, crm, channels"]
+    B2["business 1077: accounts, sessions, core, erp"]
+  end
+  D -->|"where each business lives"| slots
+```
+
+| Schema | Part | Split by business |
+|--------|------|:-----------------:|
+| `directory` | Directory: each business and where it lives, each log-in to its business, sign-ups | no: it is the map of them all |
+| `accounts` | Accounts | yes |
+| `sessions` | Sessions | yes |
+| `kernel` | The Kernel's own records (retried calls answered once, ...) | yes |
+| `core` | Core: the business's profile, roles, locations, packs on, AI settings, entry rules, notifications, audit log, outbox, numbering | yes |
+| `ogr` | OGR | yes |
+| `erp` | ERP | yes |
+| `crm` | CRM | yes |
+| `channels` | Channels | yes |
+| `store` | Store website | yes |
+| `studio` | Studio | yes |
+| `marketing` | Marketing | yes |
+| `team` | Team | yes |
+| `reports` | Reports | yes |
+| `ai` | AI module | yes |
+
+- **A business gets only the slots it uses.** Its Accounts, Sessions and Core
+  slots are made with it; a module's slots are made when its pack is turned
+  on. A shop without the CRM pack has no CRM slots
+- **Every key and link includes the business ID**, so a row can never point
+  into another business. Order numbers people read are per business: #001
+  can exist in two businesses
+- **Changing a table changes every business's slot at once**: one migration,
+  not one per business. Removing or exporting a business is taking out its
+  slots
+- **A business can grow out of its slot:** the Directory says where each
+  business lives, so a large business can later move to a database of its
+  own, and the Kernel finds it the same way
+- **How it is split:** one slot per business while there are few (hundreds);
+  past about 500 businesses, a fixed number of shared slots (hash split), each
+  holding several businesses kept apart by row-level security. The code does
+  not change between the two
+
+Only the Kernel opens the database (2.9). For each system call it sets the
+business for the transaction (row-level security and the slot) and switches
+to the owning module's database user, which has rights only on that module's
 schema, so a module's code can never touch another module's tables. The AI
 module's user cannot see any business schema.
 
@@ -313,7 +377,7 @@ stores only that ID.
 | Thing | Owner | ID | Used by |
 |-------|-------|----|---------|
 | Business | Core | `business_id` | Every module, every table |
-| Member (a person in the business) | Core | `membership_id` | ERP (shifts, sales), Team, Channels (assigned to), audit |
+| Member (a person in the business) | Accounts | `account_id` | ERP (shifts, sales), Team, Channels (assigned to), audit |
 | Location (branch) | Core | `location_id` | ERP, Team, Store |
 | **Customer** | CRM | `customer_id` | ERP (orders, credit), Channels (conversations), Marketing (sends), Store (orders), AI (memory notes) |
 | Item and variant | ERP | `item_id`, `variant_id` | Store (menu), Studio (designs), Marketing (offers), CRM (usual order) |
@@ -459,9 +523,11 @@ A Pass is the sealed call: the business it is for, the actor (a member, the
 AI and who it acts for, the system, a customer, or the Gateway itself for
 log-in), the person's session token, the call and its input. The Kernel
 checks the session token itself (it made it, at log-in), so the Shell cannot
-claim to be someone else. The business ID tells the Directory where to look:
-even a token with every permission sees only its own business's data. A
-request without a valid Pass never reaches the Kernel.
+claim to be someone else. A token belongs to one business: it names its
+business and is kept only in that business's Sessions slot, so changing the
+business ID in a token matches nothing. The Directory tells the Kernel where
+that business lives: even a token with every permission sees only its own
+business's data. A request without a valid Pass never reaches the Kernel.
 
 **The Shell and the Kernel are two services.** Each runs on its own, so one
 falling does not take the other down; each comes back by itself. It is still
@@ -498,17 +564,37 @@ answering.
 anyone is logged in: `system.find_account`, `system.create_account`,
 `system.check_password`, `system.set_password`, `system.start_session`,
 `system.end_session`, `system.send_mail`, and so on. The Kernel accepts them
-only from the Gateway, with the actor "gateway" and no business. They are
-never offered to the app, the AI or outside callers, and they are checked,
-limited and audited like any other call. The flow of a log-in is: Login →
-Shell → Kernel → Shell → Login.
+only from the Gateway, with the actor "gateway". They are never offered to
+the app, the AI or outside callers, and they are checked, limited and audited
+like any other call. The flow of a log-in is: Login → Shell → Kernel → Shell
+→ Login. Inside the Kernel:
+
+```mermaid
+sequenceDiagram
+  participant Kernel
+  participant Directory
+  participant Accounts as accounts slot of nova
+  participant Sessions as sessions slot of nova
+  Kernel->>Directory: ahmed@gmail.com, or mona@nova: which business
+  Directory-->>Kernel: business 379874389
+  Kernel->>Accounts: which account; is the password right
+  Accounts-->>Kernel: account 7, owner; the second step is needed
+  Kernel->>Accounts: check the second step and the entry rules
+  Kernel->>Sessions: a token for account 7, owner
+  Sessions-->>Kernel: the token, for this business only
+```
+
+With `mona@nova` the handle is found in the Directory's `business` table;
+with an email or Google, in its `login` table. After log-in, a call needs
+only Sessions (whose token is this?) and the Directory kept in memory.
 
 **The OS (mode 0): the Kernel and the parts around it.** All of it lives in
 one folder, `os/` (21.2).
 
 The Kernel works like a CPU: it only **processes** calls. It manages
 nothing itself and owns no data; each part around it does its own job (the
-Directory knows who belongs where, the Registry knows every call, the audit
+Directory knows where each business lives, Accounts knows its people,
+Sessions knows its tokens, the Registry knows every call, the audit
 writes the audit row, the drivers talk to mail and files). And like the CPU
 is the only one that reaches memory, the Kernel holds the only connection to
 the database: the parts around it work inside the transaction the Kernel
@@ -533,10 +619,32 @@ hands them, and never open the database themselves.
   runs the module's code, writes the change, the audit row and the event
   (outbox), and records new things and links in the OGR. Either all of it is
   saved, or none of it.
-- **Directory:** answers "whose is it, and what may this person do?". It owns
-  the where section: businesses, members, roles, locations, templates, the
-  packs on for each business, and the AI settings (7.1). It is what keeps one
-  business's data apart from every other's, like home folders on a computer.
+- **Directory:** the map above everything, and the one part not split by
+  business (2.3). It has two tables: `business` (each business ID: its
+  handle, where it lives, which slots it has, active or paused) and `login`
+  (each email or Google ID, scrambled, pointing to its one business; one
+  business has many log-ins). It also keeps the sign-ups in progress, before
+  their business exists. The Kernel keeps `business` in memory and refreshes
+  it on the events that change it (`BusinessCreated`, `PackTurnedOn`, ...),
+  so a normal call does not read it; `login` is opened only at log-in,
+  sign-up, invites and email changes. The Kernel's Registry says where the
+  Directory is, so it is the first thing the Kernel finds when it starts.
+- **Accounts:** the people of each business, in that business's own slot:
+  username, role, password, the second step, lock-out, each account's log-in
+  methods (email, Google) and the pending invites (7.6). An account belongs
+  to one business. Accounts is asked at log-in and when a log-in method, a
+  role changes or a member is removed; when a role changes or a member is removed, it
+  tells the Kernel, and the Kernel has Sessions replace or end that account's
+  sessions at once.
+- **Sessions:** the tokens and devices of each business, in its own slot. It
+  holds no passwords. On every call, it is the one lookup that turns a token
+  into its account and role.
+- **What a role may do, the packs on and the AI settings** belong to the
+  business itself, in its Core slot: the token says "owner"; the business's
+  slot says what an owner may do there. A business can also set its own
+  **entry rules**: approved devices only, its own network, working hours, by
+  role (a cashier only from the shop's tablet; the owner from anywhere). The
+  Kernel checks them at log-in and on every call.
 - **OGR (One Global Reference):** answers "what is this, and what is it linked
   to?". It is the web of links inside each business: this chat belongs to this
   customer, who placed order #1042, which has two lattes. Each module owns its
@@ -605,20 +713,21 @@ hands them, and never open the database themselves.
 
 #### The database sections
 
-One database (2.3), in five sections:
+One database, as a grid (2.3):
 
-| Section | Owner | Holds | Where it is today |
-|---------|-------|-------|-------------------|
-| users | Login (through the Kernel) | accounts, sessions, devices, sign-in codes, setup steps | `core` schema; moves to its own schema later |
-| where | Directory | businesses, members, roles, locations, templates, packs on, AI settings | `core` schema |
-| links | OGR | things and their links, per business | new `ogr` schema |
-| system | Kernel and Daemons | audit log, outbox, jobs, approvals | audit and outbox in `core`; jobs in the jobs library's tables |
-| data | each module | one schema per module: `erp`, `crm`, `channels`, `store`, `reports`, `ai`, ... | as in 2.3 |
+| Section | Owner | Holds | Split by business | Where it is today |
+|---------|-------|-------|:-----------------:|-------------------|
+| the map | Directory | where each business lives, its handle, each log-in's business, sign-ups | no | `core` schema (`business`); moves to `directory` |
+| people | Accounts | accounts, log-in methods, roles, invites, sign-in codes | yes | `core` schema (`account`, `membership`, codes); moves to `accounts` |
+| tokens | Sessions | sessions and devices | yes | `core` schema (`session`); moves to `sessions` |
+| links | OGR | things and their links | yes | new `ogr` schema |
+| system | Kernel and Daemons | audit log, outbox, jobs, approvals | yes | audit and outbox in `core`; jobs in the jobs library's tables |
+| data | each module | one schema per module: `core`, `erp`, `crm`, `channels`, `store`, `reports`, `ai`, ... | yes | as in 2.3 |
 
 The Core of section 7 is therefore not one part any more: its sign-up and
-log-in (7.6) are Login, its businesses, members, roles and packs are the
+log-in (7.6) are Login with Accounts and Sessions, its map of businesses is the
 Directory, and its audit, outbox and scheduler (7.4) are the Kernel and the
-Daemons.
+Daemons. What stays in Core is each business's own settings, in its slot.
 
 #### How every part connects
 
@@ -636,7 +745,9 @@ flowchart LR
     SHELL["Shell<br/>checks each command,<br/>signs a Pass"]
   end
   subgraph KS["OS: mode 0"]
-    INDEX["Directory<br/>whose? role?"]
+    INDEX["Directory<br/>where each business lives,<br/>each log-in's business"]
+    ACC["Accounts<br/>people of each business"]
+    SES["Sessions<br/>tokens of each business"]
     OGR["OGR<br/>what is linked"]
     REG["Registry<br/>system calls"]
     DAEMONS["Daemons<br/>events, jobs, retries"]
@@ -649,7 +760,7 @@ flowchart LR
     DRV["Module drivers<br/>Telegram, Meta"]
     SYSDRV["System drivers<br/>mail, files"]
   end
-  DB[("PostgreSQL<br/>users, where, links,<br/>system, data")]
+  DB[("PostgreSQL grid<br/>parts as columns,<br/>a slot per business")]
 
   AGENT --> AIDOOR
   OWNER --> APPDOOR
@@ -659,7 +770,7 @@ flowchart LR
   LOGIN -->|"system.* calls"| SHELL
   AIDOOR & APPDOOR & PUBDOOR --> SHELL
   SHELL -->|"Pass"| KERNEL
-  INDEX & OGR & REG -.->|"asked"| KERNEL
+  INDEX & ACC & SES & OGR & REG -.->|"asked"| KERNEL
   DAEMONS -->|"calls as system"| KERNEL
   KERNEL -->|"runs their code"| AIMOD & ERP & CRM & CHN & MORE
   KERNEL ==>|"reads and writes"| DB
@@ -682,7 +793,7 @@ sequenceDiagram
   participant G as AI agent
   participant M as Model
   participant K as Kernel
-  participant X as Directory, OGR, Registry
+  participant X as Directory, Sessions, OGR, Registry
   participant DB as PostgreSQL
   participant D as Daemons
 
@@ -699,8 +810,8 @@ sequenceDiagram
   M-->>G: call reports.get_sales
   G->>S: ai door: reports.get_sales
   S->>K: Pass
-  K->>X: Directory: is he in nova? may he read sales?
-  K->>DB: read inside nova (row-level security)
+  K->>X: Sessions: whose token in nova? Core: may an owner read sales?
+  K->>DB: read nova's slot (row-level security)
   DB-->>K: nova's rows
   K-->>G: 37 orders, 4,250 EGP
   M-->>G: call erp.change_price
@@ -712,7 +823,7 @@ sequenceDiagram
   K->>DB: save the approval
   G->>S: ai door: erp.change_price with a retry key
   S->>K: Pass
-  K->>X: Directory: role, pack. OGR: the latte is nova's
+  K->>X: Sessions: role. Directory: pack on. OGR: the latte is nova's
   Note over K: 5 checks: may he, same business, data rules, already done, limits
   K->>DB: price + audit row + PriceChanged, one transaction
   K-->>G: done
@@ -740,8 +851,8 @@ classDiagram
     +shell Shell
   }
   class Login {
-    +signUp(email)
-    +logIn(email, password) Session
+    +signUp(email or google)
+    +logIn(email or username@handle, password) Session
     +sendCode(email)
     +logOut(session)
   }
@@ -771,10 +882,25 @@ classDiagram
   }
   class Directory {
     +businesses Business[]
-    +members Member[]
-    +packsOn Pack[]
-    +aiSettings AiSetting[]
-    +memberOf(account, business) Member
+    +logins Login[]
+    +signups Signup[]
+    +whereIs(business_id) Home
+    +businessOf(email or handle) business_id
+  }
+  class Accounts {
+    <<split by business>>
+    +accounts Account[]
+    +invites Invite[]
+    +checkPassword(business, account, password) bool
+    +changeRole(business, account, role)
+  }
+  class Sessions {
+    <<split by business>>
+    +sessions Session[]
+    +devices Device[]
+    +start(business, account, role) Token
+    +whose(token) Account
+    +endFor(business, account)
   }
   class OGR {
     +things Thing[]
@@ -866,7 +992,10 @@ classDiagram
   Shell ..> Kernel : call with Pass
   Kernel *-- MailDriver : system drivers
   Kernel *-- FilesDriver : system drivers
-  Kernel ..> Directory : whose?
+  Kernel ..> Directory : where?
+  Kernel ..> Accounts : who?
+  Kernel ..> Sessions : whose token?
+  Accounts ..> Kernel : role changed
   Kernel ..> OGR : what is it?
   Kernel ..> SyscallRegistry : finds
   Kernel ..> Event : saves
@@ -1342,41 +1471,70 @@ The foundation every module stands on.
 
 ### 7.1 What it owns
 
+Grouped by where each table lives (2.3). Only the Directory is not split;
+every other table has `business_id` first in its key and lives in that
+business's slot.
+
 ```
-business          id, name, handle (unique, 7.7), business_type, sells,
-                  currency, timezone, locale, template_key,
+-- directory: the map, not split
+business          id (never changes), handle (unique), old_handle,
+                  old_handle_until (30 days), status(active|paused),
+                  home (where it lives: shared, or its own database later),
+                  slots (the parts it has), created_at
+login             value_hash (a scrambled email or Google ID, unique),
+                  kind(email|google), business_id
+                  (one business has many; each value belongs to one business)
+signup            id, email_hash, code_hash, attempts, expires_at,
+                  idempotency_key, created_at
+                  (deleted when the business is made, or after a day)
+signup_step       signup_id, step, reached_at   (7.7; the first time only)
+
+-- accounts: one slot per business
+account           business_id, id, username (unique in the business),
+                  display_name, role, email (optional for staff, 7.6),
+                  email_verified_at, google_id, phone, password_hash,
+                  must_change_password, second_step, language,
+                  failed_logins, locked_until, created_at, updated_at
+                  PRIMARY KEY (business_id, id),
+                  UNIQUE (business_id, username)
+invite            business_id, id, email, role, token_hash, invited_by,
+                  expires_at, accepted_at
+email_code        business_id, id, account_id, purpose, code_hash,
+                  attempts, expires_at, used_at                       (7.6)
+
+-- sessions: one slot per business
+session           business_id, id, account_id, role, token_hash, device_id,
+                  browser, user_agent, first_ip, last_ip, created_at,
+                  last_seen_at, proved_at, expires_at, ended_at,
+                  end_reason                                          (7.6)
+device            business_id, id, account_id, name, approved_by,
+                  approved_at, last_seen_at
+
+-- core: one slot per business
+profile           business_id, name, business_type, sells, currency,
+                  timezone, locale, template_key,
                   team_size(alone|team, empty for new businesses),
-                  settings(jsonb), idempotency_key, created_by, created_at
-                  UNIQUE (created_by, idempotency_key)
-account           id, email (one account per email), email_verified_at, name,
-                  phone, password_hash (empty for Google-only), google_id,
-                  language, failed_logins, locked_until, created_at, updated_at
-email_code        id, email, code_hash, attempts, expires_at, used_at  (7.6)
-auth_ticket       id, account_id, ticket_hash, expires_at, used_at     (7.6)
-session           id, account_id, token_hash, browser, user_agent, first_ip,
-                  last_ip, created_at, last_seen_at, proved_at, expires_at,
-                  ended_at, end_reason                                 (7.6)
-setup_step        account_id, step, reached_at   (7.7; the first time only)
-                  (every user_id points to account.id)
-membership        id, business_id, user_id, username, display_name, role,
-                  invited_by, joined_at
-                  UNIQUE (business_id, user_id), UNIQUE (business_id, username)
-invite            id, business_id, phone_or_email, role, token_hash, expires_at
+                  settings(jsonb), created_by, created_at
 role              business_id, name, permissions(jsonb)
                   defaults: owner, manager, staff, viewer
-location          id, business_id, name, city, area, address
+entry_rule        business_id, id, role, kind(device|network|hours),
+                  value(jsonb), created_by, created_at  (term to be decided, 26)
+location          business_id, id, name, city, area, address
                   (the first one is made at setup, 7.7; more with branches)
-template          key, version, content(jsonb)              (files, versioned)
-pack              key, version, module, needs, content(jsonb) (files, versioned)
 business_pack     business_id, pack_key, status(on|off), settings(jsonb),
                   changed_by, changed_at
-audit_log         id, business_id, actor_type(user|ai|system), actor_id,
+numbering         business_id, kind, next_number
+audit_log         business_id, id, actor_type(user|ai|system), actor_id,
                   action, object_type, object_id, before, after, created_at
-outbox            id, business_id, event_type, payload, created_at,
+outbox            business_id, id, event_type, payload, created_at,
                   dispatched_at, attempts, last_error
-notification      id, business_id, user_id, type, title, body,
+notification      business_id, id, account_id, type, title, body,
                   ref_type, ref_id, read_at, created_at
-api_key           id, business_id, name, scopes, created_at   (term 2)
+api_key           business_id, id, name, scopes, created_at   (term 2)
+
+-- files, not tables
+template          key, version, content(jsonb)              (versioned)
+pack              key, version, module, needs, content(jsonb) (versioned)
 ```
 
 ### 7.2 Templates: one engine, any business
@@ -1506,7 +1664,9 @@ not part of this design yet.
    morning briefing, scheduled posts
 
 **Emits:** `BusinessCreated`, `MemberInvited`, `MemberJoined`, `RoleChanged`,
-`PackTurnedOn`, `PackTurnedOff`
+`MemberRemoved`, `HandleChanged`, `BusinessPaused`, `PackTurnedOn`,
+`PackTurnedOff`. The Kernel refreshes its in-memory copy of the Directory on
+the ones that change it (2.9).
 
 ### 7.5 Core system calls
 
@@ -1518,7 +1678,7 @@ not part of this design yet.
 | `core.turn_on_pack` | Turn a pack on, with the packs it needs (undo: turn off) | W | always | |
 | `core.turn_off_pack` | Turn a pack off; its data is kept (undo: turn on) | W | always | |
 | `core.list_members` | Members and roles | R | | |
-| `core.invite_member` | Invite by phone or email with a role | W | | |
+| `core.invite_member` | Invite by email with a role, or make a member with no email (a username and a first password) | W | | |
 | `core.change_role` | Change a member's role | W | always | |
 | `core.remove_member` | Remove a member | W | always | |
 | `core.list_locations` | Branches | R | | yes |
@@ -1528,23 +1688,52 @@ not part of this design yet.
 ### 7.6 Sign up and log in
 
 Short, like the sign-up of the AI tools people already use. One start screen
-for both signing up and logging in: **Continue with Google**, or an email.
+for both signing up and logging in: **Continue with Google**, an email, or a
+business username (`mona@nova`). Each business also has its own log-in page
+(`/nova/login`), which only logs in to that business.
 
-**With Google:** the person picks their Google account; we keep the email
-(for notifications and codes) and the name. No password.
+**One log-in, one business.** An account lives inside its business (2.3),
+like a work account. There is no list of businesses to pick from after
+log-in, and no account that reaches two businesses:
 
-**With email:** the email, then a 6-digit code sent to it, then a password.
+- Everyone has the log-in name **`username@handle`**, made by the system
+  (`mona@nova`). Inside, it is really `mona@379874389`: the handle is a label
+  on the business ID, so renaming the handle changes nothing for her
+- An **email is optional for staff** (a barista with no email gets
+  `mona@nova` and a first password from the owner) and **needed for the
+  owner** (or a Google account)
+- **An email or a Google account belongs to one business only**, across all
+  businesses. Using one that another business already has is refused with
+  `email_in_other_business`
+- **Branches are one business**, managed from one place. A truly different
+  business (a café and a car agency) is a second sign-up, with a different
+  email or Google account
+
+So knowing an email always means knowing its business, and a token made for
+one business can never be used in another (2.9).
+
+**Signing up makes the business and its owner together.** With email: the
+email, then a 6-digit code sent to it, then a password, then the business
+setup (7.7). With Google: the person picks their Google account (no code, no
+password); we keep the email and the name. Until the setup is done, the
+sign-up waits in the Directory (scrambled email, code, expiry), not as an
+account. At the end, in **one transaction**: the business in the Directory,
+its slots, the owner's account (the owner role, the username) and its log-in
+row. A sign-up never finished is deleted after a day.
 
 | Rule | |
 |------|-|
-| One email, one account | Signing up by email and later with Google (or the other way) is the same account |
+| One email, one business | Signing up by email and later logging in with Google (same email) is the same account. The same email cannot be in a second business |
 | Codes | 6 digits, valid 10 minutes, 5 tries, a new one after 60 seconds; stored only as a hash |
 | Passwords | At least 8 characters, stored only as an argon2id hash |
-| Logging in later | Email, then the password (or "email me a code instead"); a Google account uses Google |
+| Logging in later | Email or `username@handle`, then the password (or "email me a code instead", when the account has an email); a Google account uses Google. A first password the owner gave must be changed at the first log-in |
+| No email | The owner resets the password of a member who has no email |
 | Lock-out | 5 wrong passwords in a row lock the account for 15 minutes |
 | Checking emails | The email step shows whether an account exists (like Google or Slack), so one visitor can check at most 10 emails an hour |
 | Setting or changing a password | Always proves it is the right person first: the old password, or a code sent to the email. An account with no password (Google) always uses a code |
-| After sign-up | The business setup (7.7) comes next, not during sign-up |
+| Inviting a member by email | Refused at once when the email is already in another business. Several businesses may invite the same free email; the first invite accepted wins, the others then fail with `email_in_other_business` |
+| Changing an email or Google account | The new one is checked in the Directory first; a code goes to the new email and a notice to the old one; then, in one transaction, the account and its log-in row change, and the other sessions end |
+| Changing a handle | Allowed; everyone's log-in names follow (`mona@nova` becomes `mona@novea`). The old handle stays blocked for 30 days, so no one else takes it while links still use it |
 
 A checked code gives a short ticket (10 minutes, one use) that the next step
 (setting the password) must show.
@@ -1560,28 +1749,31 @@ A checked code gives a short ticket (10 minutes, one use) that the next step
 | New log-in email | Every log-in after the first: which browser and when |
 | Browser check | The browser and system are saved at log-in; if the key shows up from another one (a stolen cookie), the session ends. The IP is saved and shown, but not tied: phones change IP between Wi-Fi and mobile data all day |
 | Password set or changed | Every other device is logged out |
+| Role changed or member removed | Accounts tells the Kernel, and that account's sessions are replaced (new role) or ended at once |
+| A token names its business | `1042.<secret>`: the Kernel opens only business 1042's Sessions slot, and the hash of the secret exists only there |
+| Entry rules | Each business may set its own (2.9): approved devices only, its network, hours, by role. A log-in or call that breaks one is refused with `device_not_allowed` (or `outside_hours`). Which term they come in is open (26) |
 | Other sites | Write requests from another site are refused |
 | Two-factor (later) | An authenticator app, offered in My account |
 
 ### 7.7 Business setup and names
 
-Right after sign-up. It cannot be skipped: a person with no business always
-comes back to it (logging out is the only way out). The business setup needs
-sessions (the backend must know who is creating the business), so sessions
-come first. One question per screen (`FE-003`), with Back on every step
-after the first and Log out on every step.
+Part of sign-up (7.6): the business and its owner are made together when the
+last step is done, so there is never an account with no business. Until then
+the sign-up waits in the Directory, and coming back with the same email
+continues it. One question per screen (`FE-003`), with Back on every step
+after the first.
 
-**One exception:** an account with a pending invite goes to the invite, not to
-setup, so a barista who signs up from an invite link is never made to create a
-business. Built with invites.
+**An invited person does not sign up:** the invite link opens the business's
+own page, where they set their password (or use Google) and join that
+business. They never see the business setup.
 
 **Asked before the business can be used, in this order** (agreed in
 `ALL-002`, 2026-10-21):
 
 | # | Question | Why | Notes |
 |:-:|----------|-----|-------|
-| 1 | Language | Everything after it is in that language | Arabic picked by default; a switch at the top of every step. Saved on the account at once |
-| 2 | What should the AI call you? | What the AI and the team call you ("Ahmed" or "أستاذ أحمد") | Only asked when the account has no name (Google gives one) |
+| 1 | Language | Everything after it is in that language | Arabic picked by default; a switch at the top of every step. Saved with the sign-up at once, then on the owner's account |
+| 2 | What should the AI call you? | What the AI and the team call you ("Ahmed" or "أستاذ أحمد") | Only asked when there is no name yet (Google gives one) |
 | 3 | Business name, with its handle | Shown everywhere: the AI, the shop page, order messages | "Nova Café". The handle is filled in from the name, with a live preview of the shop page address and the team log-in (`moe@nova-cafe`); **Change** to edit it. Under it: "One name for the whole business. Branches come later" |
 | 4 | Kind of business | Picks the template, so the packs it turns on (7.2, 7.3) | A short list, grown as templates are built (see below). "Something else" asks **What do you sell?** (optional, kept in `sells`) |
 | 5 | Where is it? | The customer agent can answer "where are you?"; delivery areas start from it; the shop page needs it; the Market team sees which areas sign up | City (Egypt's 27 governorates, Cairo, Giza and Alexandria first) and the area, typed. Stored as the business's first location |
@@ -1605,11 +1797,11 @@ pack asks what matters later.
 
 **Rules:**
 
-- One account can create at most 5 businesses (against abuse; can be raised).
-  The sixth answers `business_limit`, not a "wait and try again"
+- One sign-up makes one business. A second business needs a second sign-up,
+  with an email or Google account no business uses yet
 - The app makes one retry key per setup and sends it with every try, so a lost
   reply never makes a second business (2.1)
-- The first time each account reaches each step is recorded, to see where
+- The first time each sign-up reaches each step is recorded, to see where
   people stop and how long setup takes
 
 **Filled in, changeable in Settings:** currency (EGP), time zone (Cairo), the
@@ -1625,7 +1817,8 @@ logo, team members, Telegram.
 - The **business handle** is unique across all businesses (`nova`): 3 to 30
   lowercase letters, digits and dashes, no dots. It is used in the shop page
   address, invite links, QR codes and the business's log-in, so setup asks to
-  pick it with care and promises no change later (26)
+  pick it with care. It can be changed later; the old one stays blocked for 30
+  days (7.6). It is only a label: the business ID behind it never changes
 - **From the name, in one place in the backend,** so the app, the AI and
   imports get the same answer: Arabic is written in Latin letters the way
   Egyptians write names in chats (`كافيه النيل` gives `kafeh-elnil`), accents
@@ -1639,9 +1832,10 @@ logo, team members, Telegram.
   chosen. Anyone else's claim goes through report and reclaim: proof, a check
   within 7 days, and 7 days for the owner to pick a new handle (who owns it is
   open, 26)
-- Each person has a **username inside each business** (`ahmed`), unique only
-  in that business. Together they read **`ahmed@nova`**, like an email: the
-  same person can be `ahmed@nova` and `ahmed@bean`, with one account
+- Each account has a **username inside its business** (`ahmed`), unique only
+  in that business. Together they read **`ahmed@nova`**, like an email, and
+  that is the account's log-in name. `ahmed@nova` and `ahmed@bean` are two
+  separate accounts, each with its own email (or none) and password (7.6)
 - **Names are not roles.** There is no `admin@nova`: `ahmed@nova` can be the
   owner. What a person may do comes only from their role (owner, manager,
   staff, viewer), and roles can change without changing the name
@@ -1652,9 +1846,9 @@ logo, team members, Telegram.
   name** for them ("Mr. Ahmed"), from their name
 - Because handles have no dots, the log-in box tells the two apart:
   `ahmed@gmail.com` is an email, `ahmed@nova` is a business username
-- **Later, with the team pack:** staff with no email (a barista on the shop's
-  tablet) get an account made by the owner and log in with `ahmed@nova` and a
-  password or PIN. That is when the account's email becomes optional
+- Staff with no email (a barista on the shop's tablet) get an account made by
+  the owner and log in with `mona@nova` and a password (7.6). A PIN for the
+  sales screen comes with the team pack
 
 ---
 
@@ -2168,11 +2362,11 @@ to term 1).
 ### 14.1 What it owns
 
 ```
-staff_profile    membership_id, business_id, phone, hourly_rate_cents, skills,
+staff_profile    account_id, business_id, phone, hourly_rate_cents, skills,
                  availability(jsonb)
-rota_shift       id, business_id, location_id, membership_id, starts_at, ends_at,
+rota_shift       id, business_id, location_id, account_id, starts_at, ends_at,
                  role, status(planned|swapped|done|missed)
-attendance       id, business_id, membership_id, clock_in_at, clock_out_at, source
+attendance       id, business_id, account_id, clock_in_at, clock_out_at, source
 task             id, business_id, assigned_to, title, due_at, status, created_by_type
 ```
 
@@ -2296,8 +2490,8 @@ offered only when the packs it needs are on.
 the flow of Claude's app is the reference, not its look):
 
 - **Sidebar**, which folds away (on phones it is closed by default):
-  - at the top, the **business switcher** ("Nova Café ▾") for a person in more
-    than one business
+  - at the top, the business's name ("Nova Café"). There is no business
+    switcher: one log-in, one business (7.6)
   - **+ New request** and **Search** (threads)
   - the parts of the business, only those the person's role and the packs on
     allow, with counts ("Inbox 2"); the rarely used ones under **More**
@@ -2600,8 +2794,10 @@ app-backend/
 ├── templates/                          coffee-shop, small-market: packs on, fields, stages,
 │                                       home items, AI defaults, template skills
 ├── database/
-│   ├── migrations/                     one folder per schema, with its tables: core, erp, crm,
-│   │                                   channels, store, studio, marketing, team, reports, ai
+│   ├── migrations/                     one folder per schema (the grid, 2.3): directory, accounts,
+│   │                                   sessions, kernel, core, ogr, erp, crm, channels, store,
+│   │                                   studio, marketing, team, reports, ai; every one but
+│   │                                   directory split by business
 │   └── seeds/                          invented demo coffee shop and small market
 ├── gateway/                            mode 1: everything that comes in (2.9)
 │   ├── doors/                          one system call API, four doors
@@ -2623,14 +2819,17 @@ app-backend/
 │   │   ├── call                        takes a system call with its Pass and runs it in one
 │   │   │                               transaction: change, audit row, outbox, OGR links
 │   │   ├── checks                      may he, same business, data rules, already done, limits
-│   │   ├── tenancy                     every call inside one business (row-level security)
+│   │   ├── tenancy                     every call inside one business: its slot, row-level security
 │   │   └── context                     business, actor, correlation ID, retry key on every call (2.6)
-│   ├── directory/                      businesses, members, roles, locations, templates, packs on,
-│   │                                   AI settings; whose is it, what may he do
+│   ├── directory/                      the map, not split: each business and where it lives, each
+│   │                                   log-in's business, sign-ups; kept in the Kernel's memory
+│   ├── accounts/                       the people of each business (split by business): usernames,
+│   │                                   roles, passwords, the second step, log-in methods, invites
+│   ├── sessions/                       the tokens and devices of each business (split by business)
 │   ├── ogr/                            things and their links, per business
 │   ├── registry/                       loads every system call's JSON file; filters by pack, role, face
-│   ├── system/                         the internal system.* calls for Login: accounts, passwords,
-│   │                                   sessions, sending mail
+│   ├── system/                         the internal system.* calls for Login, run by Accounts,
+│   │                                   Sessions and the Directory; sending mail
 │   ├── drivers/                        the system's own drivers, called only by the Kernel:
 │   │                                   mail, files; push, sms (term 2)
 │   ├── audit/                          audit row on every write
@@ -2649,7 +2848,8 @@ app-backend/
 │   │                                   regulars, morning briefing, scheduled posts
 │   └── retries                         messages and calls an outside service did not accept
 ├── modules/
-│   ├── core/                           notifications, the business profile system calls (7.5)
+│   ├── core/                           each business's own settings in its slot: profile, roles'
+│   │                                   permissions, locations, packs on, entry rules; notifications (7.5)
 │   ├── ai/                             the AI module: memory, skills, schedules, the AI action log (6.9)
 │   ├── erp/
 │   │   ├── catalog/                    items, variants, modifiers, categories (essentials)
@@ -2800,7 +3000,7 @@ Nothing is dropped. Everything is ordered.
 |------|-----------------------------|-----------------------|
 | AI | Customer agent, owner partner, morning briefing, alerts, approvals, planner, core skills, owner skill edits (basic) | All jobs, monthly value report, AI-suggested skills, voice and images |
 | Models | Both tiers tuned, test set, tuned vs untuned, adaptation test | Larger training data, more categories, image model, model picker with other models, our models compared with commercial ones on the test set |
-| Core | Businesses, members, roles, audit, templates (coffee shop, small market), essentials and the library of packs | More templates, outside API keys |
+| Core | Businesses on the database grid (2.3), sign-up and log-in with one log-in per business (7.6), members, roles, audit, templates (coffee shop, small market), essentials and the library of packs | More templates, outside API keys |
 | ERP | Menu, recipes, stock, waste, sales screen, orders, shifts and cash, suppliers and purchases, cost per item, credit basic | Offline sales, credit in full, expiry in full, branches and transfers, payments and couriers, e-invoicing |
 | CRM | Customers, identities, timeline, usual order, loyalty, notes, support cases, bookings basic | Segments, consent, merging, bookings in full |
 | Channels | Website chat, Telegram; WhatsApp if approved | WhatsApp in full, Instagram, Facebook, posting |
@@ -2893,10 +3093,14 @@ Decisions still open before the structure is final:
     needs wildcard DNS and certificates), `<domain>/s/<shop>` (needs nothing
     new), or `<domain>/<shop>` with a long reserved list (today). The first
     two end clashes between handles and our own pages for good
-11. **Can a handle change?** Backend's suggestion: not in term 1; later yes,
-    with old handles redirecting and never given to another business
+11. **Can a handle change?** Answered 2026-10-24: yes. The business ID never
+    changes, so log-ins follow the new handle; the old one stays blocked for 30
+    days (7.6)
 12. **Who keeps the brand list and handles reclaim requests:** Security or
     Backend
 13. **The kinds of business and the places list:** the Market team confirms
     the kinds from the interviews; whether the 27 governorates and a typed
     area are detailed enough
+14. **Entry rules** (approved devices, network, hours, by role; 2.9, 7.6):
+    which term they come in. The tables are planned from the start, so adding
+    them later changes no other part
